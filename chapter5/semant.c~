@@ -1,0 +1,96 @@
+#include "semant.h"
+#include <assert.h>
+#define TR(a,b) for(typeof(b) (a)=(b);(a)!=NULL;a=((a)->tail))
+static string tyKindName(int k)
+{
+  switch(k)
+    {
+    case Ty_record: return "record";
+    case Ty_nil: return "nil";
+    case Ty_int: return "int";
+    case Ty_string: return "string";
+    case Ty_array: return "array";
+    case Ty_name: return "name";
+    case Ty_void: return "void";
+    default: assert(0);
+    }
+  return NULL;
+}
+
+static void  assertKind( int kind, int k, string s)
+{
+  if( kind !=k )
+    EM_error( e->pos, "Expect %s ", s );
+}
+
+//static assertType( A_exp 
+static struct expty transExpCall( S_table venv, S_table tenv, A_exp e)
+{
+  assertKind( e->kind, A_callExp , "function call" );
+  //S_beginScope( venv );
+  A_fundec funentry = S_look( tenv, e->func );
+  if( funentry == NULL )
+    EM_error( e->pos, S_name( e->func ) , "is not function name" );
+  // params is in def, args is in call
+  A_fieldList params = funentry->params;
+  A_expList args = e->args;
+  for( ; args!=NULL && params!=NULL ; 
+       args = args->tail, params = params->tail )
+    {
+      A_exp arg = args->head;
+      struct expty targ = transExp( venv, tenv, arg );
+      A_exp param = params->head;
+      struct expty tparam = S_loop( tenv , param->typ );
+      assertKind( targ.ty->kind , tparam.ty->kind ,
+		  S_name( tparam.ty );
+      //S_enter( venv , arg->name->sym , tmp );
+    }
+  if( args != NULL )
+    EM_error( e->pos, "Too much arguments" );
+  else if( params != NULL )
+    EM_error( e->pos, "Expect more arguments" );
+  //S_endScope(venv);
+}
+struct expty  transExp(S_table venv, S_table tenv, A_exp a)
+{
+  /* S_beginScope(venv); */
+  /* S_beginScope(tenv); */
+  switch(a->kind)
+    {
+    case A_varExp:
+      return transVar(venv,tenv,a);
+      break;
+    case A_nilExp:
+      return expTy( NULL, Ty_Nil() );
+      break;
+    case A_intExp:
+      return expTy( NULL, Ty_Int() );
+      break;
+    case A_stringExp:
+      return expTy( NULL, Ty_String() );
+      break;
+    case A_callExp:
+      return transExpCall( venv, tenv, a );
+      break;
+    case A_opExp:
+    case  A_recordExp:
+    case  A_seqExp:
+    case  A_assignExp:
+    case  A_ifExp:
+    case A_whileExp:
+    case  A_forExp:
+    case  A_breakExp:
+    case  A_letExp:
+    case  A_arrayExp:
+
+    default: assert(0);
+    }
+  /* S_endScope(tenv); */
+  /* S_endScope(venv); */
+}
+struct expty  transVar(S_table venv, S_table tenv, A_exp v)
+{}
+struct expty  transDec(S_table venv, S_table tenv, A_exp d)
+{}
+/* struct Ty_ty transTy( S_table tenv, A_ty a) */
+/* {} */

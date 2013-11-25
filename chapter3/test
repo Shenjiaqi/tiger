@@ -1,0 +1,6 @@
+#!/bin/bash
+for file in `ls ../testcases`
+do
+    echo $file
+    ./a.out ../testcases/$file 
+done
