@@ -157,21 +157,19 @@ struct expty transVar(S_table venv, S_table tenv, A_var v)
       }
     case A_fieldVar:
       {
-	expty var = (expty) transVar( venv , tenv , v->u.field.var);
-	Ty_ty varType = var->ty.u.record;
-	//TODO
-	string varName = S_name( v->u.field.var );
-	E_entry var = (E_entry) S_look( venv , v->u.field.var );
-	if( var == NULL )
-	  EM_error( v->pos , "can't find" , varName );
-	if( var->ty.kind != Ty_record )
-	  EM_error( v->pos , varName , "is not record type" );
+	struct expty var =  transVar( venv , tenv , v->u.field.var);
+	Ty_ty varType = var.ty;
 	string fieldName = S_name( v->u.field.sym );
-	Ty_fieldList fields = var->ty.u.record;
+	if( varType->kind != Ty_record )
+	  EM_error( v->pos , " is not record " );
+	Ty_fieldList fields = varType->u.record;
 	for( ; fields != NULL ; fields = fields->tail )
-	  if( fields->head->name == sym )
-	    return _expTy( NULL , fields->head->ty );
-	EM_error( v->pos , varName , " has not field: " , fieldName );
+	  {
+	    Ty_field field = fields->head ;
+	    if( field->name == v->u.field.sym )
+	      return _expTy( NULL , field->ty );
+	  }
+	EM_error( v->pos , "can't find field " , S_name( v->u.field.sym ) );
       }
     case A_subscriptVar:
     default :
