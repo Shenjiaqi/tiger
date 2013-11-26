@@ -79,7 +79,7 @@ void yyerror(char *s)
 program: exp { absyn_root = $1 ; }
 ;
 
-decs: decs dec { $$ = A_DecList( $2 , $1 ) ; }
+decs: dec decs { $$ = A_DecList( $1 , $2 ) ; }
 | { $$ = NULL ; }
 ; 
 
@@ -88,11 +88,11 @@ dec: tydecs { $$ = A_TypeDec( EM_tokPos , $1 ) ; }
 | fundecs { $$ = A_FunctionDec( EM_tokPos , $1 ) ; }
 ;
 
-fundecs: fundecs fundec { $$ = A_FundecList( $2 , $1 ) ; }
+fundecs: fundec fundecs { $$ = A_FundecList( $1 , $2 ) ; }
 | fundec { $$ = A_FundecList( $1 , NULL ) ; }
 ;
 
-tydecs: tydecs tydec { $$ = A_NametyList( $2 , $1 ) ; }
+tydecs: tydec tydecs { $$ = A_NametyList( $1 , $2 ) ; }
 | tydec { $$ = A_NametyList( $1 , NULL ) ; }
 
 tydec: TYPE type_id EQ ty { $$ = A_Namety( $2 , $4 ) ; }
@@ -183,10 +183,10 @@ rec_list: rec_list_opt { $$ = $1 ; }
 | { $$ = NULL ;}
 ;
 
-rec_list_opt: rec_list_opt COMMA ID EQ exp { 
+rec_list_opt: ID EQ exp COMMA rec_list_opt { 
   A_EfieldList(
-	       A_Efield( S_Symbol( $3 ) ,$5 ) ,
-	       $1 ) ; }
+	       A_Efield( S_Symbol( $1 ) ,$3 ) ,
+	       $5 ) ; }
 | ID EQ exp { $$ = A_EfieldList( A_Efield( S_Symbol( $1 ) , $3 ) ,
 				 NULL ) ; }
 ;
@@ -220,7 +220,7 @@ exp_list: exp_list_opt { $$ = $1 ; }
 | { $$ = NULL ; }
 ;
 
-exp_list_opt: exp_list_opt COMMA exp { $$ = A_ExpList( $3 , $1 ) ; }
+exp_list_opt: exp COMMA  exp_list_opt { $$ = A_ExpList( $1 , $3 ) ; }
 | exp { $$ = A_ExpList( $1 , NULL ) ;}
 ;
 
@@ -251,17 +251,17 @@ break_: BREAK { $$ = A_BreakExp ( EM_tokPos ) ; }
 let_: LET decs IN expseq END { $$ = A_LetExp( EM_tokPos , $2 , $4 ) ; }
 ;
 
-seq_list: seq_list_opt exp { $$ = A_ExpList( $2 , $1 ) ; }
+seq_list: exp SEMICOLON seq_list_opt { $$ = A_ExpList( $1 , $3 ) ; }
 ;
 
-seq_list_opt: seq_list_opt exp SEMICOLON { $$ = A_ExpList( $2 , $1 ) ; }
-| exp SEMICOLON { $$ = A_ExpList( $1 , NULL ) ; }
+seq_list_opt: exp SEMICOLON seq_list_opt { $$ = A_ExpList( $1 , $3 ) ; }
+| exp { $$ = A_ExpList( $1 , NULL ) ; }
 ;
 
 expseq: expseq_opt { $$ = $1 ; }
 | { $$ = NULL ; }
 ;
 
-expseq_opt: expseq_opt SEMICOLON exp { $$ = A_ExpList( $3 , $1 ) ; }
+expseq_opt: exp SEMICOLON expseq_opt { $$ = A_ExpList( $1 , $3 ) ; }
 | exp { $$ = A_ExpList( $1 , NULL ) ; }
 ;

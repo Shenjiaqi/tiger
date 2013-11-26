@@ -71,7 +71,7 @@ struct A_dec_
      union {A_fundecList function;
 	    /* escape may change after the initial declaration */
 	    struct {S_symbol var; S_symbol typ; A_exp init; bool escape;} var;
-            A_nametyList type;
+       A_nametyList type;
 	  } u;
    };
 
@@ -85,7 +85,8 @@ struct A_ty_ {enum {A_nameTy, A_recordTy, A_arrayTy} kind;
 
 /* Linked lists and nodes of lists */
 
-struct A_field_ {S_symbol name, typ; A_pos pos; bool escape;};
+struct A_field
+_ {S_symbol name, typ; A_pos pos; bool escape;};
 struct A_fieldList_ {A_field head; A_fieldList tail;};
 struct A_expList_ {A_exp head; A_expList tail;};
 struct A_fundec_ {A_pos pos;

@@ -11,6 +11,6 @@ struct expty { Tr_exp exp; Ty_ty ty; };
 struct expty _expTy(Tr_exp exp, Ty_ty ty);
 struct expty transExp(S_table venv, S_table tenv, A_exp a);
 struct expty transVar(S_table venv, S_table tenv, A_var v);
-struct expty transDec(S_table venv, S_table tenv, A_exp d);
+struct expty transDec(S_table venv, S_table tenv, A_dec d);
 /* struct Ty_ty transTy( S_table tenv, A_ty a); */
 #endif

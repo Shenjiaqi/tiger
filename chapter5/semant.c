@@ -24,6 +24,23 @@ struct expty _expTy(Tr_exp exp, Ty_ty ty)
   e.ty = ty;
   return e;
 }
+
+//indicate whether in funcdeclare
+static bool inFunc;
+void SetInFunc()
+{
+  inFunc = TRUE ;
+}
+void UsetInFunc()
+{
+  inFunc = FALSE;
+}
+bool InFunc()
+{
+  return inFunc;
+}
+//
+
 E_entry E_FunEntry( Ty_tyList arg, Ty_ty ret )
 {
   E_entry e = checked_malloc( sizeof( *e ) );
@@ -78,8 +95,10 @@ static struct expty transExpCall( S_table venv, S_table tenv, A_exp e)
   //find function type in tenv
   E_entry funentry = (E_entry)S_look( venv, e->u.call.func );
   //may be not a function name or can't find at all
-  if( funentry == NULL || funentry->kind != E_funEntry )
-    EM_error( e->pos, S_name( e->u.call.func ) , "is not function name" );
+  if( funentry == NULL)
+    EM_error( e->pos , S_name( e->u.call.func ) , "not defined" );
+  if( funentry->kind != E_funEntry )
+    EM_error( e->pos , S_name( e->u.call.func ) , "is not function name" );
   //traverse all arguments 
   Ty_tyList params = funentry->fun.formalTys;
   A_expList args = e->u.call.args;
@@ -123,6 +142,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
       return transExpCall( venv, tenv, a );
       break;
     case A_opExp:
+      
     case  A_recordExp:
     case  A_seqExp:
     case  A_assignExp:
@@ -172,11 +192,165 @@ struct expty transVar(S_table venv, S_table tenv, A_var v)
 	EM_error( v->pos , "can't find field " , S_name( v->u.field.sym ) );
       }
     case A_subscriptVar:
+      {
+	struct expty var = transVar( venv , tenv , v->u.subscript.var );
+	struct expty subs = transExp( venv , tenv , v->u.subscript.exp );
+	if( subs.ty->kind != Ty_int )
+	  EM_error( v->pos , "array subs should be int" );
+	return var;
+      }
     default :
       assert(0);
     }
 }
-struct expty  transDec(S_table venv, S_table tenv, A_exp d)
-{}
+static Ty_ty dfsTypeDec( A_pos pos , S_table tenv ,
+			 S_symbol s , S_symbol origin )
+{
+  if( s == origin )
+    {
+      EM_error( pos , " loop in definition " , S_name(s) );
+      return NULL ;
+    }
+
+  Ty_ty ty = S_look( tenv , s );
+  if( ty == NULL )
+    EM_error( pos , " can't find " , s );
+
+  if( ty->kind == Ty_name )
+    {
+      if( ty->u.name.ty == NULL )
+	ty->u.name.ty = dfsTypeDec( pos , tenv , ty->u.name.sym , origin );
+      return ty->u.name.ty;
+    }
+  return ty;
+}
+static Ty_fieldList dfsRecordTy( S_table tenv , A_fieldList records )
+{
+  if( records == NULL )
+    return NULL ;
+  A_field record = records->head ;
+  Ty_ty type = S_look( tenv , record->typ );
+  Ty_field field;
+  Ty_fieldList rest = 	dfsRecordTy( tenv , records->tail );
+  if( type == NULL )
+    field = Ty_Field( record->name , Ty_Name( record->typ , NULL ) );
+  else field = Ty_Field( record->name , type );
+  return Ty_FieldList( field , rest );
+}
+struct expty transDec(S_table venv, S_table tenv, A_dec d)
+{
+  switch( d->kind )
+    {
+    case A_functionDec:
+      {
+	//whether already in funcdeclar
+	if(InFunc())
+	  EM_error( d->pos , "already in func declare");
+	A_fundecList funcs = d->u.function;
+	// for every fun declare in fundecList
+	for( ; funcs != NULL ; funcs = funcs->tail )
+	  {
+	    A_fundec func = funcs->head;
+	    // get ty of params and result
+	    Ty_tyList funentry = makeFormalTyList( tenv , func->params );
+	    Ty_ty res = S_look( tenv , func->result );
+	    if( res == NULL )
+	      EM_error( func->pos , "no " , S_name( func->result ) , "type ");
+	    //whether already defined
+	    if( S_look( venv , func->name ) != NULL )
+	      EM_error( func->pos , S_name( func->result ) ,
+			"already defined" );
+	    S_enter( venv ,  func->name , E_FunEntry( funentry , res ) );
+	  }
+	funcs = d->u.function;
+	// for every fun in fundecList, call tranexp on its body
+	for( ; funcs != NULL ; funcs = funcs->tail )
+	  {
+	    A_fundec func = funcs->head;
+	    S_beginScope( venv );
+	    A_fieldList args = func->params;
+	    Ty_tyList funentries = ((E_entry)S_look( venv , func->name ))
+	      ->fun.formalTys ;
+	    for( ; args != NULL ; args = args->tail ,
+		   funentries = funentries->tail)
+	      {
+		A_field arg = args->head;
+		Ty_ty type = funentries->head;
+		S_enter( venv , arg->name , type );
+	      }
+	    SetInFunc();
+	    transExp( venv , tenv , func->body );
+	    UsetInFunc();
+	    S_endScope( venv );
+	  }
+	return _expTy( NULL , Ty_Void() );
+      }
+    case A_varDec:
+      {
+	Ty_ty type = S_look( tenv , d->u.var.typ );
+	if( type == NULL )
+	  EM_error( d->pos , S_name( d->u.var.typ ) , " not defined " );
+	struct expty init = transExp( venv , tenv , d->u.var.init );
+	if( init.ty->kind != Ty_nil && init.ty->kind != type->kind )
+	  EM_error( d->pos , "Expect " , tyKindName( type->kind ) , " but " ,
+		    tyKindName( init.ty->kind ) );
+	if( S_look( venv , d->u.var.var ) != NULL )
+	  EM_error( d->pos , S_name( d->u.var.var ) , " already defined " );
+	S_enter( venv , d->u.var.var , type );
+	return _expTy( NULL , Ty_Void() );
+      }
+    case A_typeDec:
+      {
+	A_nametyList tylist = d->u.type;
+	for( ; tylist != NULL ; tylist = tylist->tail )
+	  {
+	    A_namety tydec = tylist->head;
+	    if( S_look( tenv , tydec->name ) != NULL )
+	      EM_error( tydec->ty->pos , S_name( tydec->name ) ,
+			" already declared " );
+	    A_ty ty = tydec->ty;
+	    switch( ty->kind )
+	      {
+	      case A_nameTy:
+		{
+		  Ty_ty tyy = S_look( tenv , ty->u.name ) ;
+		  if( tyy == NULL )
+		    S_enter( tenv , tydec->name ,
+			     Ty_Name( ty->u.name , NULL ) );
+		  else
+		    S_enter ( tenv , tydec->name , tyy );
+		}
+	      case A_recordTy:
+		{
+		  A_fieldList records = ty->u.record;
+		  Ty_fieldList types = dfsRecordTy( tenv , records );
+		  S_enter( tenv , tydec->name , Ty_Record( types ) );
+		}
+	      case A_arrayTy:
+	      default:
+		assert(0);
+	      }
+	    S_enter( tenv , tydec->name , E_VarEntry( NULL ) );
+	  }
+	tylist = d->u.type;
+	for( ; tylist != NULL ; tylist = tylist->tail )
+	  {
+	    A_namety tydec = tylist->head;
+	    A_ty ty = tydec->ty;
+	    switch( ty->kind )
+	      {
+	      case A_nameTy:
+		dfsTypeDec( ty->pos , tenv , tydec->name , tydec->name );
+	      case A_recordTy:
+	      case A_arrayTy:
+	      default:
+		assert(0);
+	      }
+	  }
+      }
+    default:
+      assert(0);
+    }
+}
 /* struct Ty_ty transTy( S_table tenv, A_ty a) */
 /* {} */
