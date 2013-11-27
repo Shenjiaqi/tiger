@@ -231,10 +231,10 @@ static Ty_fieldList dfsRecordTy( S_table tenv , A_fieldList records )
   A_field record = records->head ;
   Ty_ty type = S_look( tenv , record->typ );
   Ty_field field;
-  Ty_fieldList rest = 	dfsRecordTy( tenv , records->tail );
   if( type == NULL )
     field = Ty_Field( record->name , Ty_Name( record->typ , NULL ) );
   else field = Ty_Field( record->name , type );
+  Ty_fieldList rest = dfsRecordTy( tenv , records->tail );
   return Ty_FieldList( field , rest );
 }
 struct expty transDec(S_table venv, S_table tenv, A_dec d)
@@ -253,7 +253,11 @@ struct expty transDec(S_table venv, S_table tenv, A_dec d)
 	    A_fundec func = funcs->head;
 	    // get ty of params and result
 	    Ty_tyList funentry = makeFormalTyList( tenv , func->params );
-	    Ty_ty res = S_look( tenv , func->result );
+	    Ty_ty res;
+	    if( func->result == NULL )
+	      res = Ty_Nil();
+	    else
+	      res = S_look( tenv , func->result );
 	    if( res == NULL )
 	      EM_error( func->pos , "no " , S_name( func->result ) , "type ");
 	    //whether already defined
@@ -318,7 +322,7 @@ struct expty transDec(S_table venv, S_table tenv, A_dec d)
 		    S_enter( tenv , tydec->name ,
 			     Ty_Name( ty->u.name , NULL ) );
 		  else
-		    S_enter ( tenv , tydec->name , tyy );
+		    S_enter( tenv , tydec->name , tyy );
 		}
 	      case A_recordTy:
 		{
@@ -340,7 +344,13 @@ struct expty transDec(S_table venv, S_table tenv, A_dec d)
 	    switch( ty->kind )
 	      {
 	      case A_nameTy:
-		dfsTypeDec( ty->pos , tenv , tydec->name , tydec->name );
+		{
+		  Ty_ty tyy = S_look( tenv , ty->u.name );
+		  if( tyy->u.name.ty == NULL )
+		    tyy->u.name.ty = dfsTypeDec( ty->pos , tenv ,
+						 tyy->u.name.sym ,
+						 tydec->name );
+		}
 	      case A_recordTy:
 	      case A_arrayTy:
 	      default:
