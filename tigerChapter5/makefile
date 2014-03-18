@@ -1,5 +1,8 @@
 a.out: parsetest.o y.tab.o lex.yy.o errormsg.o util.o absyn.o symbol.o table.o prabsyn.o semant.o types.o env.o expty.o
-	cc -g symbol.o parsetest.o y.tab.o lex.yy.o errormsg.o util.o absyn.o table.o prabsyn.o semant.o types.o env.o expty.o && ./a.out ../testcases/queens.tig
+	cc -g symbol.o parsetest.o y.tab.o lex.yy.o errormsg.o util.o absyn.o table.o prabsyn.o semant.o types.o env.o expty.o 
+
+test: a.out tst.tig
+	./a.out ./tst.tig
 
 semant.o: semant.c
 	cc -g -c semant.c
@@ -46,4 +49,4 @@ env.o: util.h env.h env.c
 expty.o: expty.c types.h
 	cc -g -c expty.c
 clean: 
-	rm -f a.out util.o parsetest.o lex.yy.o errormsg.o y.tab.c y.tab.h y.tab.o symbol.o absyn.o table.o 
+	rm -f a.out util.o parsetest.o lex.yy.o errormsg.o y.tab.c y.tab.h y.tab.o symbol.o absyn.o table.o env.o expty.o

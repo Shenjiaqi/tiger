@@ -20,6 +20,11 @@ void yyerror(char *s)
 %union {
   int pos;
   int ival;
+  struct
+  {
+      string sval;
+      int pos; // type of EM_tokPos
+  }idval;
   string sval;
   A_var var;
   A_exp exp;
@@ -36,7 +41,8 @@ void yyerror(char *s)
   A_fundec fundec;
 }
 
-%token <sval> ID STRING
+%token <sval> STRING
+%token <idval> ID
 %token <ival> INT
 
 %token 
@@ -108,36 +114,37 @@ tyfields: tyfields_opt { $$ = $1 ; }
 ;
 
 tyfields_opt: tyfields_opt COMMA ID COLON type_id { 
-  $$ = A_FieldList( A_Field ( EM_tokPos , S_Symbol( $3 ) , $5 ) ,
+  $$ = A_FieldList( A_Field ( $3.pos , S_Symbol( $3.sval ) , $5 ) ,
 	    $1 ) ; }
-| ID COLON type_id { $$ = A_FieldList( A_Field ( EM_tokPos , S_Symbol( $1 ) ,
-						 $3 ) ,
-				       NULL ) ; }
+| ID COLON type_id { $$ = A_FieldList( A_Field ( $1.pos , S_Symbol( $1.sval ) ,
+    $3 ) ,
+    NULL ) ; }
 ;
 
-vardec: VAR ID ASSIGN exp { $$ = A_VarDec( EM_tokPos , S_Symbol( $2 ) ,
+vardec: VAR ID ASSIGN exp { $$ = A_VarDec( $2.pos , S_Symbol( $2.sval ) ,
 					 NULL ,
 					 $4 ) ; }
-| VAR ID COLON type_id ASSIGN exp { $$ = A_VarDec( EM_tokPos ,
-						 S_Symbol( $2 ),
+| VAR ID COLON type_id ASSIGN exp { $$ = A_VarDec( $2.pos ,
+						 S_Symbol( $2.sval ),
 						 $4,
 						 $6 ) ; }
 ;
 
 fundec: FUNCTION ID LPAREN tyfields RPAREN EQ exp {
-  $$ = A_Fundec( EM_tokPos , S_Symbol( $2 ) , $4 , NULL , $7 ) ; }
+  $$ = A_Fundec( $2.pos , S_Symbol( $2.sval ) , $4 , NULL , $7 ) ; }
 | FUNCTION ID LPAREN tyfields RPAREN COLON type_id EQ exp {
-  $$ = A_Fundec( EM_tokPos , S_Symbol( $2 ) , $4 , $7 , $9 ) ; }
+  $$ = A_Fundec( $2.pos , S_Symbol( $2.sval ) , $4 , $7 , $9 ) ; }
 ;
 
-lvalue: ID { $$ = A_SimpleVar( EM_tokPos, S_Symbol($1) ); }
-| lvalue DOT ID { $$ = A_FieldVar( EM_tokPos, $1, S_Symbol($3) ); }
-| ID LBRACK exp RBRACK { $$ = 
-      A_SubscriptVar(EM_tokPos,
-		     A_SimpleVar( EM_tokPos, S_Symbol($1) ),
-		     $3); }
-| lvalue LBRACK exp RBRACK { $$ = 
-      A_SubscriptVar( EM_tokPos, $1, $3 ); }
+lvalue: ID { $$ = A_SimpleVar( $1.pos, S_Symbol( $1.sval ) ); }
+| lvalue DOT ID { $$ = A_FieldVar( $3.pos, $1, S_Symbol($3.sval) ); }
+| lvalue LBRACK exp RBRACK {
+    $$ = A_SubscriptVar( EM_tokPos, $1, $3 ); }
+// add this rule to avoid conflict with arry_crt
+| ID LBRACK exp RBRACK { $$ =
+        A_SubscriptVar(EM_tokPos,
+        A_SimpleVar( $1.pos, S_Symbol($1.sval) ),
+        $3); }
 ;
 
 exp: expr  { $$ = $1 ; }
@@ -148,7 +155,7 @@ expr: lvalue { $$ = A_VarExp( EM_tokPos , $1 ) ; }
 | NIL { $$ = A_NilExp(EM_tokPos); }
 | seq { $$ = $1 ; }
 | INT { $$ = A_IntExp( EM_tokPos , $1 ) ; }
-| STRING { $$ = A_StringExp(EM_tokPos,$1); }
+| STRING { $$ = A_StringExp( EM_tokPos, $1 ); }
 | expr PLUS expr { $$ = A_OpExp( EM_tokPos , A_plusOp , $1 , $3 ) ; }
 | expr MINUS expr { $$ = A_OpExp( EM_tokPos , A_minusOp , $1 , $3 ) ; }
 | expr TIMES expr { $$ = A_OpExp( EM_tokPos , A_timesOp , $1 , $3 ) ; }
@@ -172,11 +179,11 @@ expr: lvalue { $$ = A_VarExp( EM_tokPos , $1 ) ; }
 ;
 
 array_crt: ID/*array_id*/ LBRACK exp RBRACK OF exp {
-  $$ = A_ArrayExp( EM_tokPos , S_Symbol( $1 ) , $3 , $6 ) ; }
+  $$ = A_ArrayExp( $1.pos , S_Symbol( $1.sval ) , $3 , $6 ) ; }
 ;
 
 rec_crt: ID/*type_id*/ LBRACE rec_list RBRACE {
-  $$ = A_RecordExp( EM_tokPos , S_Symbol( $1 ) , $3 ) ;
+    $$ = A_RecordExp( $1.pos , S_Symbol( $1.sval ) , $3 ) ;
 }
 ;
 
@@ -186,9 +193,9 @@ rec_list: rec_list_opt { $$ = $1 ; }
 
 rec_list_opt: ID EQ exp COMMA rec_list_opt { 
   A_EfieldList(
-	       A_Efield( S_Symbol( $1 ) ,$3 ) ,
+	       A_Efield( S_Symbol( $1.sval ) ,$3 ) ,
 	       $5 ) ; }
-| ID EQ exp { $$ = A_EfieldList( A_Efield( S_Symbol( $1 ) , $3 ) ,
+| ID EQ exp { $$ = A_EfieldList( A_Efield( S_Symbol( $1.sval ) , $3 ) ,
 				 NULL ) ; }
 ;
 
@@ -198,7 +205,7 @@ paren: LPAREN exp RPAREN
 seq: LPAREN seq_list RPAREN { $$ = A_SeqExp( EM_tokPos , $2 ) ; }
 ;
 
-type_id: ID { $$ = S_Symbol( $1 ) ; }
+type_id: ID { $$ = S_Symbol( $1.sval ) ; }
 ;
 
 novalue: func_call { $$ = $1 ; }
@@ -213,7 +220,7 @@ novalue: func_call { $$ = $1 ; }
 ;
 
 func_call: ID LPAREN exp_list RPAREN { $$ = A_CallExp( EM_tokPos,
-						       S_Symbol($1),
+						       S_Symbol($1.sval),
 						       $3); }
 ;
 
@@ -239,8 +246,8 @@ while_: WHILE exp DO exp { $$ = A_WhileExp( EM_tokPos , $2 , $4 ) ; }
 ;
 
 for_: FOR ID ASSIGN exp TO exp DO exp {
-  $$ = A_ForExp( EM_tokPos ,
-		 S_Symbol( $2 ) ,
+  $$ = A_ForExp( $2.pos ,
+		 S_Symbol( $2.sval ) ,
 		 $4 ,
 		 $6 ,
 		 $8 ) ; }

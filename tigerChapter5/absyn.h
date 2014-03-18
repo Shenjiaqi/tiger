@@ -108,11 +108,20 @@ struct A_exp_
 };
 
 struct A_dec_
-{enum {A_functionDec, A_varDec, A_typeDec} kind;
+{
+    enum {A_functionDec, A_varDec, A_typeDec} kind;
     A_pos pos;
-    union {A_fundecList function;
+    union
+    {
+        A_fundecList function;
 	    /* escape may change after the initial declaration */
-	    struct {S_symbol var; S_symbol typ; A_exp init; bool escape;} var;
+	    struct
+        {
+            S_symbol var;
+            S_symbol type;
+            A_exp init;
+            bool escape;
+        } var;
         A_nametyList type;
     } u;
 };

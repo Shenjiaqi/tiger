@@ -39,8 +39,8 @@
    /* Put the tokens into the symbol table, so that GDB and other debuggers
       know about them.  */
    enum yytokentype {
-     ID = 258,
-     STRING = 259,
+     STRING = 258,
+     ID = 259,
      INT = 260,
      COMMA = 261,
      COLON = 262,
@@ -86,8 +86,8 @@
    };
 #endif
 /* Tokens.  */
-#define ID 258
-#define STRING 259
+#define STRING 258
+#define ID 259
 #define INT 260
 #define COMMA 261
 #define COLON 262
@@ -140,6 +140,11 @@ typedef union YYSTYPE
 {
   int pos;
   int ival;
+  struct
+  {
+      string sval;
+      int pos; // type of EM_tokPos
+  }idval;
   string sval;
   A_var var;
   A_exp exp;
@@ -156,7 +161,7 @@ typedef union YYSTYPE
   A_fundec fundec;
 }
 /* Line 1529 of yacc.c.  */
-#line 160 "y.tab.h"
+#line 165 "y.tab.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

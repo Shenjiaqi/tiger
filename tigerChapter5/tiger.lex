@@ -27,7 +27,7 @@ void adjust(void)
 %%
 <INITIAL>"\t"       {adjust(); continue;}
 <INITIAL>" "	    {adjust(); continue;}
-\n	            {adjust(); EM_newline(); continue;}
+<INITIAL>\n	        {adjust(); EM_newline(); continue;}
 <INITIAL>","	    {adjust(); return COMMA;}
 <INITIAL>"for"      {adjust(); return FOR;}
 <INITIAL>[0-9]+	    {adjust(); yylval.ival=atoi(yytext); return INT;}
@@ -71,9 +71,12 @@ void adjust(void)
 <INITIAL>":="       {adjust(); return ASSIGN;}
 <INITIAL>"array"    {adjust(); return ARRAY;}
 <INITIAL>"/*"       {adjust(); BEGIN COMMENT;}
-<COMMENT>"*/"       {adjust(); BEGIN INITIAL;}
-<COMMENT>.          {adjust();}
-<INITIAL>[a-zA-Z_][a-zA-Z0-9_]*  {adjust(); yylval.sval=String(yytext); return ID;}
+<COMMENT>\n         {adjust(); EM_newline(); }
+<COMMENT>"*/"       {adjust(); BEGIN INITIAL; continue;}
+<COMMENT>"*"        {adjust(); }
+<COMMENT>.          {adjust(); continue;}
+<INITIAL>[a-zA-Z_][a-zA-Z0-9_]*  {adjust(); 
+    yylval.idval.sval = String(yytext);
+    yylval.idval.pos = EM_tokPos; return ID;}
 
-.	 {adjust(); EM_error(EM_tokPos,"illegal token");}
-
+<INITIAL>.	 {adjust(); EM_error(EM_tokPos,"illegal token: %s\n", yytext);}

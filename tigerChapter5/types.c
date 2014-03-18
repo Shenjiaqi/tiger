@@ -97,6 +97,7 @@ void Ty_print(Ty_ty t)
         if (t->kind == Ty_name) {
             printf(", %s", S_name(t->u.name.sym)); }
     }
+    printf("\n");
 }
 
 void TyList_print(Ty_tyList list)
@@ -109,5 +110,6 @@ void TyList_print(Ty_tyList list)
         TyList_print(list->tail);
         printf(")");
     }
+    printf("\n");
 }
 

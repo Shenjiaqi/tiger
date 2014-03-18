@@ -38,6 +38,17 @@ void EM_newline(void)
     linePos = intList(EM_tokPos, linePos);
 }
 
+void EM_pos(int pos)
+{
+    IntList lines = linePos;
+    int num=lineNum;
+
+    while (lines && lines->i >= pos)
+    {lines=lines->rest; num--;}
+    
+    if (lines) fprintf(stderr,"%d.%d: ", num, pos-lines->i);
+}
+
 void EM_error(int pos, char *message,...)
 {
     va_list ap;
