@@ -7,6 +7,7 @@
 #include "expty.h"
 #include "symbol.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 S_table tEnvTable, vEnvTable;
 // variable expression
@@ -98,7 +99,18 @@ static struct expty transLet( S_table venv, S_table tenv, A_exp a)
     S_endScope(tenv);
     return r;
 }
-
+struct lst
+{
+    void * v;
+    struct lst * nxt;
+};
+struct lst * addLst(  void * v, struct lst * pre)
+{
+    struct lst * tmp = (struct lst *)checked_malloc( sizeof( struct lst ) );
+    tmp->v = v, tmp->nxt = pre;
+    return tmp;
+}
+//static
 static struct expty transDec( S_table venv, S_table tenv,
                              A_decList d)
 {
@@ -108,25 +120,27 @@ static struct expty transDec( S_table venv, S_table tenv,
     for( A_decList i = d; i != NULL; i = i->tail )
     {
         A_dec d = i->head;
-        switch (d->kind) {
+        switch (d->kind)
+        {
             case A_functionDec:
                 break;
             case A_varDec:
             {
-                printf("varDEc\n");
+//                printf("varDEc\n");
                 S_symbol var = d->u.var.var;
-                A_dec preVar = (A_dec)S_look( venv, var);
+                Ty_ty preVar = (Ty_ty)S_look( venv, var);
                 if( preVar != NULL )
                 {
                     // redefination
                     EM_error( d->pos, "varibale \"%s\" already defined at",
                              S_name(var));
-                    EM_error( preVar->pos, "variable \"%s\" first defined here",
-                             S_name(var));
+//                    TODO: previous definition position
+//                    EM_error( preVar->pos, "variable \"%s\"
+//                    first defined here",
+//                             S_name(var));
                 }
                 else
                 {
-                    S_enter( venv, var, d);
                     S_symbol type = d->u.var.type;
                     A_exp init = d->u.var.init;
                     struct expty tyexp = transExp( venv, tenv, init);
@@ -152,7 +166,8 @@ static struct expty transDec( S_table venv, S_table tenv,
 
                     if( tydec == NULL )
                     {
-                        EM_error( d->pos, "type %s not declared", type);
+                        EM_error( d->pos, "type \"%s\" not declared",
+                                 S_name(type) );
                     }
 //                        compare with address, not element of ty
                     else if( tydec != tyexp.ty )
@@ -167,15 +182,105 @@ static struct expty transDec( S_table venv, S_table tenv,
 //                        bool escape = d->u.var.escape;
                         r.exp = NULL;
                         r.ty = tydec;
+//                        insert var to table
+                        S_enter( venv, var, tydec);
                     }
                 }
                 break;
             }
             case A_typeDec:
             {
-                for( A_nametyList i = type; i != NULL; i = i->tail)
+                struct lst * toFill = NULL;
+                for( A_nametyList i = d->u.type; i != NULL; i = i->tail)
                 {
-                    
+                    A_namety n = i->head;
+                    S_symbol name = n->name;
+//                    check if previous definition exist
+                    Ty_ty prety = S_look( tenv, name );
+                    if( prety != NULL )
+                    {
+                        EM_error( d->pos, " type \"%s\"\
+                                 already defined", S_name(name));
+//                        TODO print previous definitation position
+//                        EM_error( d->pos, " type \"%s\"\
+//                                 defined here");
+                    }
+                    A_ty ty = n->ty;
+                    S_symbol tyname = ty->u.name;
+                    switch( ty->kind )
+                    {
+                        case A_nameTy:
+                        {
+//                            type i = name
+                            prety = S_look( tenv, tyname);
+                            if( prety == NULL )
+                            {
+//                                type must be declared before
+                                EM_error( d->pos, "\"%s\" not defined\
+                                         yet", S_name(tyname));
+                            }
+                            else
+                            {
+                                r.exp = NULL;
+                                r.ty = prety;
+                                S_enter( tenv, name, r.ty);
+                            }
+                            break;
+                        }
+                        case A_recordTy:
+                        {
+                            Ty_fieldList fieldList = NULL;
+                            for( A_fieldList j = ty->u.record; j != NULL;
+                                j = j->tail)
+                            {
+                                A_field k = j->head;
+                                S_symbol fieldName = k->name;
+                                S_symbol fieldTypeName = k->typ;
+                                Ty_ty preTy =
+                                (Ty_ty)S_look(tenv, fieldTypeName);
+                                if( preTy == NULL )
+                                {
+//                                    type of field not defined yet
+//                                    may defined after
+                                    preTy = Ty_Name( fieldTypeName, NULL);
+//                                    fill NULL with address laster
+                                    toFill = addLst( preTy, toFill);
+                                }
+                                Ty_Field( fieldName, preTy);
+                                fieldList =
+                                Ty_FieldList( Ty_Field( fieldName, preTy),
+                                             fieldList );
+//                                Ty_field tyField =
+//                                Ty_Field( fieldName, )
+                            }
+                            r.exp = NULL;
+                            r.ty = Ty_Record( fieldList);
+                            S_enter( tenv, name, r.ty);
+                            break;
+                        }
+                        case A_arrayTy:
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                for( struct lst * i = toFill; i != NULL; )
+                {
+                    S_symbol typeName = ((Ty_ty) i->v)->u.name.sym;
+                    Ty_ty ty = S_look( tenv, typeName);
+                    if( ty == NULL )
+                    {
+//                        TODO: pos info
+                        EM_error( d->pos, "\"%s\" not defined",
+                                 S_name(typeName) );
+                    }
+                    else
+                    {
+                        ((Ty_ty) i->v)->u.name.ty = ty;
+                    }
+                    typeof(i) j = i;
+                    i = i->nxt;
+                    free(j);
                 }
                 break;
             }

@@ -128,7 +128,9 @@ struct A_dec_
 
 struct A_ty_ {enum {A_nameTy, A_recordTy, A_arrayTy} kind;
     A_pos pos;
-    union {S_symbol name;
+    union
+    {
+        S_symbol name;
         A_fieldList record;
         S_symbol array;
     } u;
