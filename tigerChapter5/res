@@ -9,7 +9,7 @@
        recordTy(
         fieldList(
          field(c,
-          rrrrint,
+          int,
           TRUE),
          fieldList(
           field(b,

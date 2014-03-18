@@ -116,10 +116,11 @@ static struct expty transDec( S_table venv, S_table tenv,
 {
 //    printf("%s\n", __FUNCTION__);
     struct expty r;
-    r.exp = NULL, r.ty = NULL;
+    Ty_tyList tyList = NULL;
     for( A_decList i = d; i != NULL; i = i->tail )
     {
         A_dec d = i->head;
+        r.exp = NULL, r.ty = NULL;
         switch (d->kind)
         {
             case A_functionDec:
@@ -207,6 +208,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                     }
                     A_ty ty = n->ty;
                     S_symbol tyname = ty->u.name;
+                    printf("%s\n", S_name(name));
                     switch( ty->kind )
                     {
                         case A_nameTy:
@@ -246,15 +248,15 @@ static struct expty transDec( S_table venv, S_table tenv,
 //                                    fill NULL with address laster
                                     toFill = addLst( preTy, toFill);
                                 }
-                                Ty_Field( fieldName, preTy);
                                 fieldList =
                                 Ty_FieldList( Ty_Field( fieldName, preTy),
                                              fieldList );
+
 //                                Ty_field tyField =
 //                                Ty_Field( fieldName, )
                             }
                             r.exp = NULL;
-                            r.ty = Ty_Record( fieldList);
+                            r.ty = Ty_Record(fieldList);
                             S_enter( tenv, name, r.ty);
                             break;
                         }
@@ -263,7 +265,11 @@ static struct expty transDec( S_table venv, S_table tenv,
                         default:
                             break;
                     }
+//                    add to tyList, in reverse order
+                    tyList = Ty_TyList( r.ty, tyList);
+                    printf("!!\n");
                 }
+//                fill back ty_name
                 for( struct lst * i = toFill; i != NULL; )
                 {
                     S_symbol typeName = ((Ty_ty) i->v)->u.name.sym;
@@ -288,5 +294,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                 break;
         }
     }
+    r.exp = NULL, r.ty = NULL;
+    TyList_print(tyList);
     return r;
 }
