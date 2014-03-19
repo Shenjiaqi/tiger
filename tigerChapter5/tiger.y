@@ -192,7 +192,7 @@ rec_list: rec_list_opt { $$ = $1 ; }
 ;
 
 rec_list_opt: ID EQ exp COMMA rec_list_opt { 
-  A_EfieldList(
+  $$ = A_EfieldList(
 	       A_Efield( S_Symbol( $1.sval ) ,$3 ) ,
 	       $5 ) ; }
 | ID EQ exp { $$ = A_EfieldList( A_Efield( S_Symbol( $1.sval ) , $3 ) ,

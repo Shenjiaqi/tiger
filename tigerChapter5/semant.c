@@ -8,6 +8,7 @@
 #include "symbol.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "prabsyn.h"
 
 S_table tEnvTable, vEnvTable;
 // variable expression
@@ -17,6 +18,13 @@ static struct expty transLet( S_table venv, S_table tenv, A_exp a);
 // declare statement
 static struct expty transDec( S_table venv, S_table tenv,
                              A_decList d);
+static struct expty transBody( S_table venv, S_table tenv,
+                              A_expList a);
+static Ty_ty getActuallTy( Ty_ty t);
+
+static char *str_ty[] = {
+    "record", "nil", "int", "string",
+    "array", "name", "void"};
 
 void SEM_transProg(A_exp exp)
 {
@@ -32,8 +40,10 @@ void SEM_transProg(A_exp exp)
 
 struct expty transExp(S_table venv, S_table tenv, A_exp a)
 {
-//    printf("%s %d %d %d\n", __FUNCTION__, a->kind, A_varExp, A_letExp);
+//    printf("%s %d %d %d\n", __FUNCTION__, a->kind, A_varExp, A_recordExp);
+//    pr_exp( stdout, a, 0);
     struct expty r;
+    r.exp = NULL, r.ty = Ty_Void();
     switch (a->kind)
     {
         case A_varExp:
@@ -51,6 +61,65 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
         case A_intExp:
             r.ty = Ty_Int();//S_look(tenv, S_Symbol("int"));
             r.exp = NULL;
+            break;
+        case A_recordExp:
+        {
+            S_symbol tyName = a->u.record.typ;
+            Ty_ty prety = S_look( tenv, tyName);
+            if( prety == NULL )
+            {
+                EM_error( a->pos, " type \"%s\" not defined", S_name(tyName));
+                r.ty = Ty_Void();
+            }
+            else
+            {
+                A_efieldList fields = a->u.record.fields;
+                prety = getActuallTy( prety);
+                if( prety->kind != Ty_record )
+                {
+                    EM_error( a->pos, " type \"%s\" is not a record",
+                             S_name(tyName));
+                }
+                else
+                {
+//                TODO: now we allow reassignment and aprtial assignment
+                    for(A_efieldList i = fields; i != NULL ; i = i->tail )
+                    {
+                        A_efield ii = i->head;
+//                        find corresponding field in record declarations
+                        Ty_fieldList j = prety->u.record;
+                        for(; j != NULL; j = j->tail)
+                        {
+                            Ty_field jj = j->head;
+                            if( jj->name == ii->name )
+                                break;
+                        }
+                        if( j == NULL )
+                        {
+                            EM_error(a->pos, " cann't find field \"%s\" in \"%s\"",
+                                     S_name(ii->name),
+                                     S_name(tyName));
+                        }
+                        else
+                        {
+//                            eval exp
+                            r = transExp( venv, tenv, ii->exp);
+                            Ty_ty tyexp = r.ty;
+                            Ty_field jj = j->head;
+                            Ty_ty tyExpect = getActuallTy(jj->ty);
+                            if( tyExpect->kind != tyexp->kind )
+                            {
+                                EM_error(a->pos, "type of expression(%s) of \"%s\" does not match declatation(%s)",
+                                         str_ty[tyexp->kind], S_name(ii->name),
+                                         str_ty[tyExpect->kind]);
+                            }
+                        }
+                    }
+                }
+                r.ty = prety;
+            }
+            break;
+        }
         default:
 //            assert(0);
             break;
@@ -60,15 +129,22 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
 
 static struct expty transVar( S_table venv, S_table tenv, A_var a)
 {
+//    printf("%s\n", __FUNCTION__);
     struct expty r;
-    r.exp = NULL, r.ty = NULL;
+    r.exp = NULL, r.ty = Ty_Void();
     switch (a->kind)
     {
         case A_simpleVar:
         {
 //            var id
             S_symbol varName = a->u.simple;
-//            r = expTy( NULL, );
+            Ty_ty prety = S_look( venv, varName);
+            if( prety == NULL )
+            {
+                EM_error( a->pos, " \"%s\" not defined yet",
+                         S_name( varName));
+            }
+            else r.ty = prety;
             break;
         }
         case A_fieldVar:
@@ -77,15 +153,42 @@ static struct expty transVar( S_table venv, S_table tenv, A_var a)
             S_symbol sym = a->u.field.sym;
             A_var var = a->u.field.var;
             struct expty r = transVar( venv, tenv, var);
-            
-        }
+            Ty_ty typeVar = r.ty;
+            if( typeVar->kind != Ty_record )
+            {
+                EM_error( a->pos, " \"%s\" is not a valid field",
+                         S_name(sym) );
+            }
+            else
+            {
+//                find if sym is a field
+                bool ok = FALSE;
+                for( Ty_fieldList i = typeVar->u.record; i != NULL;
+                    i = i->tail )
+                {
+                    Ty_field field = i->head;
+                    if( field->name == sym )
+                    {
+                        r.ty = field->ty;
+                        ok = TRUE;
+                        break;
+                    }
+                }
+                if( !ok )
+                {
+                    EM_error( a->pos, " cann't find field \"%s\"",
+                             S_name(sym));
+                }
+            }
             break;
+        }
         case A_subscriptVar:
             break;
         default:
             assert(0);
             break;
     }
+    return r;
 }
 
 static struct expty transLet( S_table venv, S_table tenv, A_exp a)
@@ -94,7 +197,7 @@ static struct expty transLet( S_table venv, S_table tenv, A_exp a)
     S_beginScope(venv);
     S_beginScope(tenv);
     struct expty r = transDec( venv, tenv, a->u.let.decs);
-//    transBofy( venv, tenv, a->u.body);
+    r = transBody( venv, tenv, a->u.let.body);
     S_endScope(venv);
     S_endScope(tenv);
     return r;
@@ -116,18 +219,18 @@ static struct expty transDec( S_table venv, S_table tenv,
 {
 //    printf("%s\n", __FUNCTION__);
     struct expty r;
+    r.exp = NULL, r.ty = Ty_Void();
     Ty_tyList tyList = NULL;
     for( A_decList i = d; i != NULL; i = i->tail )
     {
         A_dec d = i->head;
-        r.exp = NULL, r.ty = NULL;
+        r.exp = NULL, r.ty = Ty_Void();
         switch (d->kind)
         {
             case A_functionDec:
                 break;
             case A_varDec:
             {
-//                printf("varDEc\n");
                 S_symbol var = d->u.var.var;
                 Ty_ty preVar = (Ty_ty)S_look( venv, var);
                 if( preVar != NULL )
@@ -142,7 +245,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                 }
                 else
                 {
-                    S_symbol type = d->u.var.type;
+                    S_symbol type = d->u.var.typ;
                     A_exp init = d->u.var.init;
                     struct expty tyexp = transExp( venv, tenv, init);
                     Ty_ty tydec;
@@ -156,7 +259,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                         if( tyexp.ty->kind == Ty_nil )
                             EM_error( d->pos, "cannot assign nil to \
                                      variable \"%s\" with no declared \
-                                     type", var);
+                                     type", S_name(var) );
                         else
                             tydec = tyexp.ty;
                     }
@@ -175,8 +278,9 @@ static struct expty transDec( S_table venv, S_table tenv,
                     {
                         EM_error( d->pos,
                                  " type of variable \"%s\"(%s) does not\
-                                 match with typeof expression",
-                                 var, type);
+                                 match with typeof expression(%s)",
+                                 S_name(var), S_name(type),
+                                 str_ty[tyexp.ty->kind]);
                     }
                     else
                     {
@@ -235,6 +339,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                                 j = j->tail)
                             {
                                 A_field k = j->head;
+//                            TODO: check duplicate field name
                                 S_symbol fieldName = k->name;
                                 S_symbol fieldTypeName = k->typ;
                                 Ty_ty preTy =
@@ -309,4 +414,24 @@ static struct expty transDec( S_table venv, S_table tenv,
     r.exp = NULL, r.ty = NULL;
 //    TyList_print(tyList);
     return r;
+}
+
+static struct expty transBody( S_table venv, S_table tenv, A_expList a)
+{
+    struct expty r;
+    r.exp = NULL, r.ty = Ty_Void();
+    for( A_expList i = a; i != NULL; i = i->tail)
+    {
+        r = transExp( venv, tenv, i->head);
+    }
+    return r;
+}
+
+static Ty_ty getActuallTy( Ty_ty t)
+{
+    if( t->kind == Ty_name )
+    {
+        return getActuallTy( t->u.name.ty);
+    }
+    return t;
 }

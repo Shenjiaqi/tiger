@@ -1913,7 +1913,7 @@ yyreduce:
   case 55:
 #line 194 "tiger.y"
     { 
-  A_EfieldList(
+  (yyval.efieldlist) = A_EfieldList(
 	       A_Efield( S_Symbol( (yyvsp[(1) - (5)].idval).sval ) ,(yyvsp[(3) - (5)].exp) ) ,
 	       (yyvsp[(5) - (5)].efieldlist) ) ; }
     break;

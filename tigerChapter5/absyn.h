@@ -118,7 +118,7 @@ struct A_dec_
 	    struct
         {
             S_symbol var;
-            S_symbol type;
+            S_symbol typ;
             A_exp init;
             bool escape;
         } var;

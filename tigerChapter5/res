@@ -31,11 +31,24 @@
             rrint,
             TRUE),
            fieldList()))),
-        nametyList()))))),
+        nametyList(
+         namety(rrrrint,
+          nameTy(rint)),
+         nametyList())))))),
    decList(
     varDec(aaa,
-     rint,
-     intExp(1),
+     rrint,
+     recordExp(rrint,
+      efieldList(
+       efield(b,
+        intExp(1)),
+       efieldList(
+        efield(a,
+         stringExp("12")),
+        efieldList(
+         efield(c,
+          intExp(3)),
+         efieldList())))),
      TRUE),
     decList())),
   expList())

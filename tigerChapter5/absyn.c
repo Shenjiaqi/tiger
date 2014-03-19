@@ -200,7 +200,7 @@ A_dec A_VarDec(A_pos pos, S_symbol var, S_symbol typ, A_exp init)
     p->kind=A_varDec;
     p->pos=pos;
     p->u.var.var=var;
-    p->u.var.type=typ;
+    p->u.var.typ=typ;
     p->u.var.init=init;
     p->u.var.escape=TRUE;
     return p;
