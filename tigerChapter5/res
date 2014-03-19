@@ -21,14 +21,17 @@
             TRUE),
            fieldList()))))),
       nametyList(
-       namety(rrrint,
-        recordTy(
-         fieldList(
-          field(a,
-           rrint,
-           TRUE),
-          fieldList()))),
-       nametyList())))),
+       namety(ary,
+        arrayTy(rrrint)),
+       nametyList(
+        namety(rrrint,
+         recordTy(
+          fieldList(
+           field(a,
+            rrint,
+            TRUE),
+           fieldList()))),
+        nametyList()))))),
    decList(
     varDec(aaa,
      rint,

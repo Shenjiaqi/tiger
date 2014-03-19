@@ -93,17 +93,23 @@ static char str_ty[][12] = {
 void Ty_print(Ty_ty t)
 {
     if (t == NULL) printf("null");
-    else { printf("%s", str_ty[t->kind]);
-        if (t->kind == Ty_name) {
-            printf(", %s", S_name(t->u.name.sym)); }
+    else
+    {
+        printf("%s", str_ty[t->kind]);
+        if (t->kind == Ty_name)
+        {
+            printf(", %s", S_name(t->u.name.sym));
+        }
     }
     printf("\n");
 }
 
 void TyList_print(Ty_tyList list)
 {
-    if (list == NULL) printf("null");
-    else {
+    if (list == NULL)
+        printf("null");
+    else
+    {
         printf("TyList( ");
         Ty_print(list->head);
         printf(", ");

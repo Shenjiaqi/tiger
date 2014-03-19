@@ -208,7 +208,6 @@ static struct expty transDec( S_table venv, S_table tenv,
                     }
                     A_ty ty = n->ty;
                     S_symbol tyname = ty->u.name;
-                    printf("%s\n", S_name(name));
                     switch( ty->kind )
                     {
                         case A_nameTy:
@@ -261,19 +260,31 @@ static struct expty transDec( S_table venv, S_table tenv,
                             break;
                         }
                         case A_arrayTy:
+                        {
+                            S_symbol typeName = ty->u.array;
+                            Ty_ty prety = S_look( tenv, typeName);
+                            if( prety == NULL )
+                            {
+//                                not defined yet
+                                prety = Ty_Name( typeName, NULL);
+                                toFill = addLst( prety, toFill);
+                            }
+                            r.exp = NULL, r.ty = Ty_Array( prety );
+                            S_enter( tenv, name, r.ty);
                             break;
+                        }
                         default:
                             break;
                     }
 //                    add to tyList, in reverse order
                     tyList = Ty_TyList( r.ty, tyList);
-                    printf("!!\n");
                 }
 //                fill back ty_name
                 for( struct lst * i = toFill; i != NULL; )
                 {
                     S_symbol typeName = ((Ty_ty) i->v)->u.name.sym;
                     Ty_ty ty = S_look( tenv, typeName);
+                    Ty_ty fill = (Ty_ty) i->v;
                     if( ty == NULL )
                     {
 //                        TODO: pos info
@@ -282,7 +293,8 @@ static struct expty transDec( S_table venv, S_table tenv,
                     }
                     else
                     {
-                        ((Ty_ty) i->v)->u.name.ty = ty;
+                        assert( fill->kind == Ty_name );
+                        fill->u.name.ty = ty;
                     }
                     typeof(i) j = i;
                     i = i->nxt;
@@ -295,6 +307,6 @@ static struct expty transDec( S_table venv, S_table tenv,
         }
     }
     r.exp = NULL, r.ty = NULL;
-    TyList_print(tyList);
+//    TyList_print(tyList);
     return r;
 }
