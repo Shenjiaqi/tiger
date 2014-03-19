@@ -40,7 +40,7 @@ void SEM_transProg(A_exp exp)
 
 struct expty transExp(S_table venv, S_table tenv, A_exp a)
 {
-//    printf("%s %d %d %d\n", __FUNCTION__, a->kind, A_varExp, A_recordExp);
+//    printf("%s %d %d %d\n", __FUNCTION__, a->kind, A_varExp, A_assignExp);
 //    pr_exp( stdout, a, 0);
     struct expty r;
     r.exp = NULL, r.ty = Ty_Void();
@@ -125,6 +125,24 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
             r.exp = NULL;
             r.ty = Ty_String();
             break;
+        case A_assignExp:
+        {
+            A_var var = a->u.assign.var;
+            A_exp exp = a->u.assign.exp;
+            struct expty varexp = transVar( venv, tenv, var);
+            struct expty exprexp = transExp( venv, tenv, exp);
+            Ty_ty varty = varexp.ty;
+            Ty_ty exprty = getActuallTy( exprexp.ty );
+            if( varty != exprty && exprty->kind != Ty_void )
+            {
+                if( varty->kind == Ty_record && exprty->kind == Ty_record)
+                    EM_error( a->pos, " assignment between different records");
+                else
+                    EM_error( a->pos, " type doesn't match int assigment, from %s to %s",
+                         str_ty[exprty->kind], str_ty[varty->kind]);
+            }
+            break;
+        }
         default:
 //            assert(0);
             break;
@@ -143,7 +161,7 @@ static struct expty transVar( S_table venv, S_table tenv, A_var a)
         {
 //            var id
             S_symbol varName = a->u.simple;
-            Ty_ty prety = S_look( venv, varName);
+            Ty_ty prety = getActuallTy(S_look( venv, varName));
             if( prety == NULL )
             {
                 EM_error( a->pos, " \"%s\" not defined yet",
@@ -210,7 +228,7 @@ static struct expty transVar( S_table venv, S_table tenv, A_var a)
                              str_ty[exprexp.ty->kind]);
                 }
                 r.exp = NULL;
-                r.ty = varty->u.array;
+                r.ty = getActuallTy(varty->u.array);
             }
             break;
         }
