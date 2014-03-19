@@ -22,7 +22,7 @@
            fieldList()))))),
       nametyList(
        namety(ary,
-        arrayTy(rint)),
+        arrayTy(rrint)),
        nametyList(
         namety(rrrint,
          recordTy(
@@ -93,7 +93,18 @@
             intExp(2)),
            efieldList()))),
         TRUE),
-       decList()))))),
+       decList(
+        varDec(b,
+         recordExp(lnk,
+          efieldList(
+           efield(nxt,
+            nilExp()),
+           efieldList(
+            efield(v,
+             nilExp()),
+            efieldList()))),
+         TRUE),
+        decList())))))),
   expList(
    assignExp(
     simpleVar(aaa),
@@ -107,4 +118,13 @@
         nxt),
        cnt),
       intExp(1)))),
-   expList()))
+   expList(
+    assignExp(
+     simpleVar(b),
+     opExp(
+      PLUS,
+      varExp(
+       simpleVar(b)),
+      varExp(
+       simpleVar(b)))),
+    expList())))

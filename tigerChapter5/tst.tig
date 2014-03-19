@@ -1,16 +1,17 @@
  let
    type rint = int
    type rrint = { a : rint , b : int, c : int}
-   type ary = array of rint
+   type ary = array of rrint
    type rrrint = { a : rrint } 
    type rrrrint = rint
    var aaa : rrint := rrint { b = 1, a = 4, c = 3 }
    type lnk = { v : int , nxt : lnk, cnt : ary }
    var link1 := lnk{ nxt = nil, v = 1 }
    var link : lnk := lnk{ nxt = link1, v = 2 } 
-/* var aaa := 2 */
+   var b := lnk{ nxt = nil, v = nil }
 in
-   aaa := link1.nxt.nxt.cnt[1]
+   aaa := link1.nxt.nxt.cnt[1];
+   b := b + b
 /*
  TO test
      let

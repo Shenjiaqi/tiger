@@ -22,9 +22,13 @@ static struct expty transBody( S_table venv, S_table tenv,
                               A_expList a);
 static Ty_ty getActuallTy( Ty_ty t);
 
-static char *str_ty[] = {
+static const char *str_ty[] = {
     "record", "nil", "int", "string",
     "array", "name", "void"};
+
+static const char *str_oper[] = {
+    "PLUS", "MINUS", "TIMES", "DIVIDE",
+    "EQUAL", "NOTEQUAL", "LESSTHAN", "LESSEQ", "GREAT", "GREATEQ"};
 
 void SEM_transProg(A_exp exp)
 {
@@ -55,13 +59,47 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
             r = transLet( venv, tenv, a);
             break;
         case A_nilExp:
+        {
             r.exp = NULL;
             r.ty = Ty_Nil();
             break;
+        }
         case A_intExp:
+        {
             r.ty = Ty_Int();//S_look(tenv, S_Symbol("int"));
             r.exp = NULL;
             break;
+        }
+        case A_stringExp:
+        {
+            r.ty = Ty_String();
+            r.exp = NULL;
+            break;
+        }
+        case A_callExp:
+        {
+            break;
+        }
+        case A_opExp:
+        {
+            struct expty left = transExp( venv, tenv, a->u.op.left);
+            struct expty right = transExp( venv, tenv, a->u.op.right);
+            if( left.ty != right.ty )
+            {
+                EM_error( a->pos, " type of operators doesn't match");
+            }
+            else if( left.ty->kind != Ty_int )
+            {
+                EM_error( a->pos, " \"%s\" does not support type of operators",
+                         str_oper[a->u.op.oper]);
+            }
+            else
+            {
+                r.ty = left.ty;
+                r.exp = NULL;
+            }
+            break;
+        }
         case A_recordExp:
         {
             S_symbol tyName = a->u.record.typ;
@@ -121,10 +159,6 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
             }
             break;
         }
-        case A_stringExp:
-            r.exp = NULL;
-            r.ty = Ty_String();
-            break;
         case A_assignExp:
         {
             A_var var = a->u.assign.var;
