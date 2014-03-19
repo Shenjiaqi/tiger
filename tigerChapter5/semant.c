@@ -104,10 +104,11 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
                         {
 //                            eval exp
                             r = transExp( venv, tenv, ii->exp);
-                            Ty_ty tyexp = r.ty;
+                            Ty_ty tyexp = getActuallTy(r.ty);
                             Ty_field jj = j->head;
                             Ty_ty tyExpect = getActuallTy(jj->ty);
-                            if( tyExpect->kind != tyexp->kind )
+                            if( tyExpect->kind != tyexp->kind &&
+                               tyexp->kind != Ty_nil )// nil belong to any type
                             {
                                 EM_error(a->pos, "type of expression(%s) of \"%s\" does not match declatation(%s)",
                                          str_ty[tyexp->kind], S_name(ii->name),
@@ -120,13 +121,17 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
             }
             break;
         }
+        case A_stringExp:
+            r.exp = NULL;
+            r.ty = Ty_String();
+            break;
         default:
 //            assert(0);
             break;
     }
     return r;
 }
-
+//lvalue
 static struct expty transVar( S_table venv, S_table tenv, A_var a)
 {
 //    printf("%s\n", __FUNCTION__);
@@ -152,10 +157,11 @@ static struct expty transVar( S_table venv, S_table tenv, A_var a)
 //            id.id
             S_symbol sym = a->u.field.sym;
             A_var var = a->u.field.var;
-            struct expty r = transVar( venv, tenv, var);
-            Ty_ty typeVar = r.ty;
+            struct expty tr = transVar( venv, tenv, var);
+            Ty_ty typeVar = getActuallTy(tr.ty);
             if( typeVar->kind != Ty_record )
             {
+                printf("%s\n", str_ty[typeVar->kind]);
                 EM_error( a->pos, " \"%s\" is not a valid field",
                          S_name(sym) );
             }
@@ -183,7 +189,31 @@ static struct expty transVar( S_table venv, S_table tenv, A_var a)
             break;
         }
         case A_subscriptVar:
+        {
+//            a[b]
+            A_var var = a->u.subscript.var;
+            A_exp exp = a->u.subscript.exp;
+//            trans over a
+            struct expty varexp = transVar( venv, tenv, var);
+            Ty_ty varty = getActuallTy(varexp.ty);
+            if( varty->kind != Ty_array )
+            {
+                EM_error( a->pos, " expression/ variable is not array");
+            }
+            else
+            {
+//                trans over b
+                struct expty exprexp = transExp( venv, tenv, exp);
+                if( exprexp.ty->kind != Ty_int )
+                {
+                    EM_error( a->pos, " expect int expression, not %s",
+                             str_ty[exprexp.ty->kind]);
+                }
+                r.exp = NULL;
+                r.ty = varty->u.array;
+            }
             break;
+        }
         default:
             assert(0);
             break;
@@ -248,7 +278,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                     S_symbol type = d->u.var.typ;
                     A_exp init = d->u.var.init;
                     struct expty tyexp = transExp( venv, tenv, init);
-                    Ty_ty tydec;
+                    Ty_ty tydec = NULL;
                     if( tyexp.ty->kind == Ty_void )
                     {
                         EM_error( d->pos, "expect typed expression");
@@ -267,7 +297,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                     {
                         tydec = (Ty_ty) S_look( tenv, type);
                     }
-
+                    tydec = getActuallTy( tydec );
                     if( tydec == NULL )
                     {
                         EM_error( d->pos, "type \"%s\" not declared",
@@ -301,8 +331,8 @@ static struct expty transDec( S_table venv, S_table tenv,
                     A_namety n = i->head;
                     S_symbol name = n->name;
 //                    check if previous definition exist
-                    Ty_ty prety = S_look( tenv, name );
-                    if( prety != NULL )
+                    Ty_ty redef = S_look( tenv, name );
+                    if( redef != NULL )
                     {
                         EM_error( d->pos, " type \"%s\"\
                                  already defined", S_name(name));
@@ -317,7 +347,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                         case A_nameTy:
                         {
 //                            type i = name
-                            prety = S_look( tenv, tyname);
+                            Ty_ty prety = getActuallTy(S_look( tenv, tyname));
                             if( prety == NULL )
                             {
 //                                type must be declared before
@@ -343,7 +373,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                                 S_symbol fieldName = k->name;
                                 S_symbol fieldTypeName = k->typ;
                                 Ty_ty preTy =
-                                (Ty_ty)S_look(tenv, fieldTypeName);
+                                getActuallTy((Ty_ty)S_look(tenv, fieldTypeName));
                                 if( preTy == NULL )
                                 {
 //                                    type of field not defined yet
@@ -367,7 +397,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                         case A_arrayTy:
                         {
                             S_symbol typeName = ty->u.array;
-                            Ty_ty prety = S_look( tenv, typeName);
+                            Ty_ty prety = getActuallTy(S_look( tenv, typeName));
                             if( prety == NULL )
                             {
 //                                not defined yet
@@ -429,7 +459,7 @@ static struct expty transBody( S_table venv, S_table tenv, A_expList a)
 
 static Ty_ty getActuallTy( Ty_ty t)
 {
-    if( t->kind == Ty_name )
+    if( t != NULL && t->kind == Ty_name )
     {
         return getActuallTy( t->u.name.ty);
     }

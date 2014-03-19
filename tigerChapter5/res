@@ -44,11 +44,65 @@
         intExp(1)),
        efieldList(
         efield(a,
-         stringExp("12")),
+         intExp(4)),
         efieldList(
          efield(c,
           intExp(3)),
          efieldList())))),
      TRUE),
-    decList())),
-  expList())
+    decList(
+     typeDec(
+      nametyList(
+       namety(lnk,
+        recordTy(
+         fieldList(
+          field(cnt,
+           int,
+           TRUE),
+          fieldList(
+           field(nxt,
+            lnk,
+            TRUE),
+           fieldList(
+            field(v,
+             int,
+             TRUE),
+            fieldList()))))),
+       nametyList())),
+     decList(
+      varDec(link1,
+       recordExp(lnk,
+        efieldList(
+         efield(nxt,
+          nilExp()),
+         efieldList(
+          efield(v,
+           intExp(1)),
+          efieldList()))),
+       TRUE),
+      decList(
+       varDec(link,
+        lnk,
+        recordExp(lnk,
+         efieldList(
+          efield(nxt,
+           varExp(
+            simpleVar(link1))),
+          efieldList(
+           efield(v,
+            intExp(2)),
+           efieldList()))),
+        TRUE),
+       decList()))))),
+  expList(
+   varExp(
+    subscriptVar(
+     fieldVar(
+      fieldVar(
+       fieldVar(
+        simpleVar(link1),
+        nxt),
+       nxt),
+      cnt),
+     intExp(1))),
+   expList()))

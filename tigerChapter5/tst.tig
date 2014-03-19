@@ -1,0 +1,54 @@
+ let
+   type rint = int
+   type rrint = { a : rint , b : int, c : int}
+   type ary = array of rrrint
+   type rrrint = { a : rrint } 
+   type rrrrint = rint
+   var aaa : rrint := rrint { b = 1, a = 4, c = 3 }
+   type lnk = { v : int , nxt : lnk, cnt : int }
+   var link1 := lnk{ nxt = nil, v = 1 }
+   var link : lnk := lnk{ nxt = link1, v = 2 } 
+/* var aaa := 2 */
+in
+   link1.nxt.nxt.cnt[1]
+/*
+ TO test
+     let
+       var aaa := 1
+       var aaa := 2
+     in
+     end
+*/
+end
+/*
+let
+    var N := 8
+
+    type intArray = array of int
+
+    var row := intArray [ N ] of 0
+    var col := intArray [ N ] of 0
+    var diag1 := intArray [N+N-1] of 0
+    var diag2 := intArray [N+N-1] of 0
+
+    function printboard() =
+       (for i := 0 to N-1
+	 do (for j := 0 to N-1 
+	      do print(if col[i]=j then " O" else " .");
+	     print("\n"));
+         print("\n"))
+
+    function try(c:int) = 
+(   for i:= 0 to c do print("."); print("\n"); flush();
+     if c=N
+     then printboard()
+     else for r := 0 to N-1
+	   do if row[r]=0 & diag1[r+c]=0 & diag2[r+7-c]=0
+	           then (row[r]:=1; diag1[r+c]:=1; diag2[r+7-c]:=1;
+		         col[c]:=r;
+	                 try(c+1);
+			 row[r]:=0; diag1[r+c]:=0; diag2[r+7-c]:=0)
+
+)
+ in try(0)
+end */
