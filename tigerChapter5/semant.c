@@ -51,13 +51,17 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
     switch (a->kind)
     {
         case A_varExp:
+        {
             // variable expression
             // id or id.(id.)id or id[] or id.(id.)id[]...
             r = transVar( venv, tenv, a->u.var);
             break;
+        }
         case A_letExp:
+        {
             r = transLet( venv, tenv, a);
             break;
+        }
         case A_nilExp:
         {
             r.exp = NULL;
@@ -78,6 +82,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
         }
         case A_callExp:
         {
+            
             break;
         }
         case A_opExp:
@@ -174,6 +179,43 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
                 else
                     EM_error( a->pos, " type doesn't match int assigment, from %s to %s",
                          str_ty[exprty->kind], str_ty[varty->kind]);
+            }
+            break;
+        }
+        case A_forExp:
+        {
+            S_symbol var = a->u.forr.var;
+            S_beginScope( venv);
+            S_beginScope( tenv);
+            S_enter( venv, var, Ty_Int());
+            struct expty loExp, hiExp, bodyExp;
+            loExp = transExp( venv, tenv, a->u.forr.lo);
+            hiExp = transExp( venv, tenv, a->u.forr.hi);
+            bodyExp = transExp( venv, tenv, a->u.forr.body);
+            if( loExp.ty->kind != Ty_int )
+            {
+                EM_error( a->pos, " expect integer low expression");
+            }
+            else if( hiExp.ty->kind != Ty_int)
+            {
+                EM_error( a->pos, " expect integer high expression");
+            }
+            else
+            {
+//                DO noting
+            }
+            S_endScope( venv);
+            S_endScope( tenv);
+            break;
+        }
+        case A_whileExp:
+        {
+            struct expty testExp, bodyExp;
+            testExp = transExp( venv, tenv, a->u.whilee.test);
+            bodyExp = transExp( venv, tenv, a->u.whilee.body);
+            if( testExp.ty->kind == Ty_void )
+            {
+                EM_error( a->pos, "Expect nonvoid test expression");
             }
             break;
         }

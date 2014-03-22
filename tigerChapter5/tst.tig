@@ -9,9 +9,11 @@
    var link1 := lnk{ nxt = nil, v = 1 }
    var link : lnk := lnk{ nxt = link1, v = 2 } 
    var b := lnk{ nxt = nil, v = nil }
+   var intv := 5
 in
    aaa := link1.nxt.nxt.cnt[1];
-   b := b + b
+   for i := 0 to intv  do 1 + 1;
+   while intv := intv + intv do intv = intv - 1
 /*
  TO test
      let

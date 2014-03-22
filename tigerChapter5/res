@@ -104,7 +104,11 @@
              nilExp()),
             efieldList()))),
          TRUE),
-        decList())))))),
+        decList(
+         varDec(intv,
+          intExp(5),
+          TRUE),
+         decList()))))))),
   expList(
    assignExp(
     simpleVar(aaa),
@@ -119,12 +123,33 @@
        cnt),
       intExp(1)))),
    expList(
-    assignExp(
-     simpleVar(b),
+    forExp(i,
+     intExp(0),
+     varExp(
+      simpleVar(intv)),
      opExp(
       PLUS,
-      varExp(
-       simpleVar(b)),
-      varExp(
-       simpleVar(b)))),
-    expList())))
+      intExp(1),
+      intExp(1)),
+     TRUE),
+    expList(
+     whileExp(
+      assignExp(
+       simpleVar(intv),
+       opExp(
+        PLUS,
+        varExp(
+         simpleVar(intv)),
+        varExp(
+         simpleVar(intv)))),
+      opExp(
+       EQUAL,
+       varExp(
+        simpleVar(intv)),
+       opExp(
+        MINUS,
+        varExp(
+         simpleVar(intv)),
+        intExp(1))))
+,
+     expList()))))
