@@ -10,7 +10,7 @@ E_enventry E_VarEntry(Ty_ty Ty)
     return r;
 }
 
-E_enventry E_FunEntry(Ty_tyList formals, Ty_ty result)
+E_enventry E_FunEntry(Ty_fieldList formals, Ty_ty result)
 {
     E_enventry r = checked_malloc( sizeof(*r) );
     r->kind = E_funEntry;

@@ -22,6 +22,9 @@ static struct expty transBody( S_table venv, S_table tenv,
                               A_expList a);
 static Ty_ty getActuallTy( Ty_ty t);
 
+static Ty_fieldList transFieldList( S_table venv, S_table tenv,
+                                   A_fieldList fields);
+
 static const char *str_ty[] = {
     "record", "nil", "int", "string",
     "array", "name", "void"};
@@ -41,7 +44,9 @@ void SEM_transProg(A_exp exp)
     S_enter( tEnvTable, S_Symbol("nil"), Ty_Nil());
     transExp(vEnvTable, tEnvTable, exp);
 }
-
+//record depth of for and while expression,
+//supply information for break expression
+static int loopDepth;
 struct expty transExp(S_table venv, S_table tenv, A_exp a)
 {
 //    printf("%s %d %d %d\n", __FUNCTION__, a->kind, A_varExp, A_assignExp);
@@ -187,10 +192,11 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
             S_symbol var = a->u.forr.var;
             S_beginScope( venv);
             S_beginScope( tenv);
-            S_enter( venv, var, Ty_Int());
+            S_enter( venv, var, E_VarEntry( Ty_Int() ) );
             struct expty loExp, hiExp, bodyExp;
             loExp = transExp( venv, tenv, a->u.forr.lo);
             hiExp = transExp( venv, tenv, a->u.forr.hi);
+            ++loopDepth;
             bodyExp = transExp( venv, tenv, a->u.forr.body);
             if( loExp.ty->kind != Ty_int )
             {
@@ -204,6 +210,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
             {
 //                DO noting
             }
+            --loopDepth;
             S_endScope( venv);
             S_endScope( tenv);
             break;
@@ -212,10 +219,22 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
         {
             struct expty testExp, bodyExp;
             testExp = transExp( venv, tenv, a->u.whilee.test);
+            ++loopDepth;
             bodyExp = transExp( venv, tenv, a->u.whilee.body);
             if( testExp.ty->kind == Ty_void )
             {
                 EM_error( a->pos, "Expect nonvoid test expression");
+            }
+            --loopDepth;
+            break;
+        }
+        case A_breakExp:
+        {
+            r.exp = NULL;
+            r.ty = Ty_Void();
+            if( loopDepth == 0 )
+            {
+                EM_error( a->pos, " break statement out of loop");
             }
             break;
         }
@@ -237,13 +256,23 @@ static struct expty transVar( S_table venv, S_table tenv, A_var a)
         {
 //            var id
             S_symbol varName = a->u.simple;
-            Ty_ty prety = getActuallTy(S_look( venv, varName));
-            if( prety == NULL )
+            E_enventry entry =S_look( venv, varName);
+            if( entry == NULL )
             {
                 EM_error( a->pos, " \"%s\" not defined yet",
                          S_name( varName));
             }
-            else r.ty = prety;
+            else if( entry->kind == E_funEntry )
+            {
+                EM_error( a->pos, " \"%s\" defined as function",
+                         S_name( varName));
+            }
+            else
+            {
+                assert( entry->kind == E_varEntry);
+                Ty_ty prety = getActuallTy( entry->u.var.ty);
+                r.ty = prety;
+            }
             break;
         }
         case A_fieldVar:
@@ -337,6 +366,8 @@ struct lst * addLst(  void * v, struct lst * pre)
     tmp->v = v, tmp->nxt = pre;
     return tmp;
 }
+//record lst of temporary not defined type
+struct lst * toFill = NULL;
 //static
 static struct expty transDec( S_table venv, S_table tenv,
                              A_decList d)
@@ -352,12 +383,84 @@ static struct expty transDec( S_table venv, S_table tenv,
         switch (d->kind)
         {
             case A_functionDec:
+            {
+                A_fundecList i = d->u.function;
+//                collect function head information
+                for( ; i; i = i->tail )
+                {
+                    A_fundec f = i->head;
+                    S_symbol funName = f->name;
+                    A_fieldList funParams = f->params;
+                    S_symbol funRes = f->result;
+                    A_exp funBody = f->body;
+                    if( S_look( venv, funName ) != NULL )
+                    {
+                        EM_error( d->pos, " %s already defined",
+                                 S_name(funName));
+                    }
+                    else
+                    {
+                        Ty_fieldList fieldList =
+                        transFieldList( venv, tenv, funParams);
+//                        if there are types not defined, which shouldn't happen
+//                        code copy from recordDec
+                        if( toFill != NULL )
+                        {
+                            for( struct lst * i = toFill; i != NULL; )
+                            {
+                                S_symbol typeName = ((Ty_ty) i->v)->u.name.sym;
+                                Ty_ty ty = S_look( tenv, typeName);
+                                Ty_ty fill = (Ty_ty) i->v;
+                                if( ty == NULL )
+                                {
+                                    //        TODO: pos info
+                                    EM_error( d->pos, "\"%s\" not defined",
+                                             S_name(typeName) );
+                                }
+                                else
+                                {
+                                    assert( fill->kind == Ty_name );
+                                    fill->u.name.ty = ty;
+                                }
+                                typeof(i) j = i;
+                                i = i->nxt;
+                                free(j);
+                            }
+                        }
+                        else
+                        {
+                            Ty_ty tyRes = (Ty_ty) S_look( tenv, funRes );
+                            if( tyRes )
+                            {
+                                EM_error( d->pos, " type %s not defined yet ",
+                                         S_name(funRes) );
+                            }
+                            else
+                            {
+                                tyRes = getActuallTy( tyRes );
+                                S_enter( venv, funName, E_FunEntry( fieldList,
+                                                                   tyRes ) );
+                            }
+                        }
+                    }
+                }
+//                process every function body
+                for( i = d->u.function; i; i = i->tail )
+                {
+                    A_fundec f = i->head;
+                    S_symbol funName = f->name;
+                    A_fieldList funParams = f->params;
+                    S_symbol funRes = f->result;
+                    A_exp funBody = f->body;
+                    S_
+                    struct expty bodyExp = transExp( venv, tenv, funBody);
+                }
                 break;
+            }
             case A_varDec:
             {
                 S_symbol var = d->u.var.var;
-                Ty_ty preVar = (Ty_ty)S_look( venv, var);
-                if( preVar != NULL )
+                if( S_look( venv, var) != NULL )
                 {
                     // redefination
                     EM_error( d->pos, "varibale \"%s\" already defined at",
@@ -412,14 +515,13 @@ static struct expty transDec( S_table venv, S_table tenv,
                         r.exp = NULL;
                         r.ty = tydec;
 //                        insert var to table
-                        S_enter( venv, var, tydec);
+                        S_enter( venv, var, E_VarEntry(tydec) );
                     }
                 }
                 break;
             }
             case A_typeDec:
             {
-                struct lst * toFill = NULL;
                 for( A_nametyList i = d->u.type; i != NULL; i = i->tail)
                 {
                     A_namety n = i->head;
@@ -458,31 +560,8 @@ static struct expty transDec( S_table venv, S_table tenv,
                         }
                         case A_recordTy:
                         {
-                            Ty_fieldList fieldList = NULL;
-                            for( A_fieldList j = ty->u.record; j != NULL;
-                                j = j->tail)
-                            {
-                                A_field k = j->head;
-//                            TODO: check duplicate field name
-                                S_symbol fieldName = k->name;
-                                S_symbol fieldTypeName = k->typ;
-                                Ty_ty preTy =
-                                getActuallTy((Ty_ty)S_look(tenv, fieldTypeName));
-                                if( preTy == NULL )
-                                {
-//                                    type of field not defined yet
-//                                    may defined after
-                                    preTy = Ty_Name( fieldTypeName, NULL);
-//                                    fill NULL with address laster
-                                    toFill = addLst( preTy, toFill);
-                                }
-                                fieldList =
-                                Ty_FieldList( Ty_Field( fieldName, preTy),
-                                             fieldList );
-
-//                                Ty_field tyField =
-//                                Ty_Field( fieldName, )
-                            }
+                            Ty_fieldList fieldList =
+                            transFieldList( venv, tenv, ty->u.record);
                             r.exp = NULL;
                             r.ty = Ty_Record(fieldList);
                             S_enter( tenv, name, r.ty);
@@ -508,7 +587,7 @@ static struct expty transDec( S_table venv, S_table tenv,
 //                    add to tyList, in reverse order
                     tyList = Ty_TyList( r.ty, tyList);
                 }
-//                fill back ty_name
+                //    fill back ty_name
                 for( struct lst * i = toFill; i != NULL; )
                 {
                     S_symbol typeName = ((Ty_ty) i->v)->u.name.sym;
@@ -516,14 +595,14 @@ static struct expty transDec( S_table venv, S_table tenv,
                     Ty_ty fill = (Ty_ty) i->v;
                     if( ty == NULL )
                     {
-//                        TODO: pos info
+                        //        TODO: pos info
                         EM_error( d->pos, "\"%s\" not defined",
                                  S_name(typeName) );
                     }
                     else
                     {
                         assert( fill->kind == Ty_name );
-                        fill->u.name.ty = ty;
+                        fill->u.name.ty = getActuallTy(ty);
                     }
                     typeof(i) j = i;
                     i = i->nxt;
@@ -558,4 +637,35 @@ static Ty_ty getActuallTy( Ty_ty t)
         return getActuallTy( t->u.name.ty);
     }
     return t;
+}
+
+static Ty_fieldList transFieldList( S_table venv, S_table tenv,
+                                   A_fieldList fields)
+{
+    Ty_fieldList fieldList = NULL;
+    for( A_fieldList j = fields; j != NULL;
+        j = j->tail)
+    {
+        A_field k = j->head;
+        //                            TODO: check duplicate field name
+        S_symbol fieldName = k->name;
+        S_symbol fieldTypeName = k->typ;
+        Ty_ty preTy =
+        getActuallTy((Ty_ty)S_look(tenv, fieldTypeName));
+        if( preTy == NULL )
+        {
+            //                                    type of field not defined yet
+            //                                    may defined after
+            preTy = Ty_Name( fieldTypeName, NULL);
+            //                                    fill NULL with address laster
+            toFill = addLst( preTy, toFill);
+        }
+        fieldList =
+        Ty_FieldList( Ty_Field( fieldName, preTy),
+                     fieldList );
+        
+        //                                Ty_field tyField =
+        //                                Ty_Field( fieldName, )
+    }
+    return fieldList;
 }

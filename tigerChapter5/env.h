@@ -21,7 +21,8 @@ struct E_enventry_
         } var;
         struct
         {
-            Ty_tyList formals;
+//            change from Ty_tyList, different from book
+            Ty_fieldList formals;
             Ty_ty result;
         } fun;
     } u;
@@ -31,7 +32,7 @@ struct E_enventry_
 E_enventry E_VarEntry(Ty_ty Ty);
 
 //create an environment entry for function
-E_enventry E_FunEntry(Ty_tyList formals, Ty_ty result);
+E_enventry E_FunEntry(Ty_fieldList formals, Ty_ty result);
 
 //return an environment table for variable and function
 S_table E_base_tenv(void);

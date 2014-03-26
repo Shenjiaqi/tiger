@@ -12,8 +12,13 @@
    var intv := 5
 in
    aaa := link1.nxt.nxt.cnt[1];
-   for i := 0 to intv  do 1 + 1;
-   while intv := intv + intv do intv = intv - 1
+
+   for i := 0 to intv  do
+   (
+     1 + 1;
+     intv := intv + intv
+   );
+   while intv + intv do intv = intv - 1
 /*
  TO test
      let

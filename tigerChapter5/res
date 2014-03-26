@@ -127,21 +127,31 @@
      intExp(0),
      varExp(
       simpleVar(intv)),
-     opExp(
-      PLUS,
-      intExp(1),
-      intExp(1)),
+     seqExp(
+      expList(
+       opExp(
+        PLUS,
+        intExp(1),
+        intExp(1)),
+       expList(
+        assignExp(
+         simpleVar(intv),
+         opExp(
+          PLUS,
+          varExp(
+           simpleVar(intv)),
+          varExp(
+           simpleVar(intv)))),
+        expList()))),
      TRUE),
     expList(
      whileExp(
-      assignExp(
-       simpleVar(intv),
-       opExp(
-        PLUS,
-        varExp(
-         simpleVar(intv)),
-        varExp(
-         simpleVar(intv)))),
+      opExp(
+       PLUS,
+       varExp(
+        simpleVar(intv)),
+       varExp(
+        simpleVar(intv))),
       opExp(
        EQUAL,
        varExp(
