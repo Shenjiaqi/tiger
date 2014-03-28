@@ -400,17 +400,18 @@ static struct expty transDec( S_table venv, S_table tenv,
                     }
                     else
                     {
+                        assert(toFill == NULL);
                         Ty_fieldList fieldList =
                         transFieldList( venv, tenv, funParams);
 //                        if there are types not defined, which shouldn't happen
 //                        code copy from recordDec
                         if( toFill != NULL )
                         {
-                            for( struct lst * i = toFill; i != NULL; )
+                            for( ; toFill != NULL; )
                             {
-                                S_symbol typeName = ((Ty_ty) i->v)->u.name.sym;
+                                S_symbol typeName = ((Ty_ty) toFill->v)->u.name.sym;
                                 Ty_ty ty = S_look( tenv, typeName);
-                                Ty_ty fill = (Ty_ty) i->v;
+                                Ty_ty fill = (Ty_ty) toFill->v;
                                 if( ty == NULL )
                                 {
                                     //        TODO: pos info
@@ -422,24 +423,33 @@ static struct expty transDec( S_table venv, S_table tenv,
                                     assert( fill->kind == Ty_name );
                                     fill->u.name.ty = ty;
                                 }
-                                typeof(i) j = i;
-                                i = i->nxt;
+                                typeof(toFill) j = toFill;
+                                toFill = toFill->nxt;
                                 free(j);
                             }
                         }
                         else
                         {
-                            Ty_ty tyRes = (Ty_ty) S_look( tenv, funRes );
-                            if( tyRes )
+                            if( funRes != NULL )
                             {
-                                EM_error( d->pos, " type %s not defined yet ",
-                                         S_name(funRes) );
+                                Ty_ty tyRes = (Ty_ty) S_look( tenv, funRes );
+                                if( tyRes )
+                                {
+                                    EM_error( d->pos, " type %s not defined yet ",
+                                             S_name(funRes) );
+                                }
+                                else
+                                {
+                                    tyRes = getActuallTy( tyRes );
+                                    S_enter( venv, funName, E_FunEntry( fieldList,
+                                                                       tyRes ) );
+                                }
                             }
                             else
                             {
-                                tyRes = getActuallTy( tyRes );
-                                S_enter( venv, funName, E_FunEntry( fieldList,
-                                                                   tyRes ) );
+                                // no return type
+                                S_enter( venv, funName, E_FunEntry(fieldList,
+                                                                   Ty_Void()) );
                             }
                         }
                     }
@@ -452,8 +462,19 @@ static struct expty transDec( S_table venv, S_table tenv,
                     A_fieldList funParams = f->params;
                     S_symbol funRes = f->result;
                     A_exp funBody = f->body;
-                    S_
-                    struct expty bodyExp = transExp( venv, tenv, funBody);
+                    S_beginScope( venv);
+//                    add parameter varibale to venv
+                    for(A_fieldList j = funParams; j; j = j->tail )
+                    {
+                        A_field k = j->head;
+                        S_symbol fieldName = k->name;
+                        S_symbol fieldTypeName = k->typ;
+                        Ty_ty preTy =
+                        getActuallTy((Ty_ty)S_look(tenv, fieldTypeName));
+                        S_enter( venv, fieldName, E_VarEntry( preTy) );
+                    }
+//                    struct expty bodyExp = transExp( venv, tenv, funBody);
+                    S_endScope( venv);
                 }
                 break;
             }
@@ -588,11 +609,11 @@ static struct expty transDec( S_table venv, S_table tenv,
                     tyList = Ty_TyList( r.ty, tyList);
                 }
                 //    fill back ty_name
-                for( struct lst * i = toFill; i != NULL; )
+                for( ; toFill != NULL; )
                 {
-                    S_symbol typeName = ((Ty_ty) i->v)->u.name.sym;
+                    S_symbol typeName = ((Ty_ty) toFill->v)->u.name.sym;
                     Ty_ty ty = S_look( tenv, typeName);
-                    Ty_ty fill = (Ty_ty) i->v;
+                    Ty_ty fill = (Ty_ty) toFill->v;
                     if( ty == NULL )
                     {
                         //        TODO: pos info
@@ -604,8 +625,8 @@ static struct expty transDec( S_table venv, S_table tenv,
                         assert( fill->kind == Ty_name );
                         fill->u.name.ty = getActuallTy(ty);
                     }
-                    typeof(i) j = i;
-                    i = i->nxt;
+                    typeof(toFill) j = toFill;
+                    toFill = toFill->nxt;
                     free(j);
                 }
                 break;

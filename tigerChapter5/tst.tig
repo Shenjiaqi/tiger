@@ -10,6 +10,15 @@
    var link : lnk := lnk{ nxt = link1, v = 2 } 
    var b := lnk{ nxt = nil, v = nil }
    var intv := 5
+   function printboard( a : rint, b : int ) =
+     (
+       for i := 0 to N-1
+       	 do (
+	   for j := 0 to N-1 
+             do print(
+	       if col[i]=j then " O" else " .");
+           print("\n"));
+             print("\n"))
 in
    aaa := link1.nxt.nxt.cnt[1];
 
