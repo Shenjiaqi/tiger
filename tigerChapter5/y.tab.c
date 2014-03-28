@@ -582,8 +582,8 @@ static const yytype_uint16 yyrline[] =
      164,   165,   166,   167,   168,   169,   172,   174,   176,   177,
      178,   181,   185,   190,   191,   194,   198,   202,   205,   208,
      211,   212,   213,   214,   215,   216,   217,   218,   219,   222,
-     227,   228,   231,   232,   235,   238,   241,   245,   248,   256,
-     259,   262,   265,   266,   269,   270,   273,   274
+     227,   228,   231,   232,   235,   238,   242,   246,   249,   257,
+     260,   263,   266,   267,   270,   271,   274,   275
 };
 #endif
 
@@ -2013,22 +2013,23 @@ yyreduce:
 
   case 75:
 #line 238 "tiger.y"
-    { (yyval.exp) = A_IfExp( EM_tokPos , (yyvsp[(2) - (4)].exp) , (yyvsp[(4) - (4)].exp) , NULL ) ; }
+    { (yyval.exp) = A_IfExp( EM_tokPos , (yyvsp[(2) - (4)].exp) , (yyvsp[(4) - (4)].exp) ,
+    A_NilExp( EM_tokPos) ) ; }
     break;
 
   case 76:
-#line 241 "tiger.y"
+#line 242 "tiger.y"
     { (yyval.exp) = A_IfExp ( EM_tokPos , 
 							(yyvsp[(2) - (6)].exp) , (yyvsp[(4) - (6)].exp) , (yyvsp[(6) - (6)].exp) ); }
     break;
 
   case 77:
-#line 245 "tiger.y"
+#line 246 "tiger.y"
     { (yyval.exp) = A_WhileExp( EM_tokPos , (yyvsp[(2) - (4)].exp) , (yyvsp[(4) - (4)].exp) ) ; }
     break;
 
   case 78:
-#line 248 "tiger.y"
+#line 249 "tiger.y"
     {
   (yyval.exp) = A_ForExp( (yyvsp[(2) - (8)].idval).pos ,
 		 S_Symbol( (yyvsp[(2) - (8)].idval).sval ) ,
@@ -2038,53 +2039,53 @@ yyreduce:
     break;
 
   case 79:
-#line 256 "tiger.y"
+#line 257 "tiger.y"
     { (yyval.exp) = A_BreakExp ( EM_tokPos ) ; }
     break;
 
   case 80:
-#line 259 "tiger.y"
+#line 260 "tiger.y"
     { (yyval.exp) = A_LetExp( EM_tokPos , (yyvsp[(2) - (5)].decList) , (yyvsp[(4) - (5)].explist) ) ; }
     break;
 
   case 81:
-#line 262 "tiger.y"
+#line 263 "tiger.y"
     { (yyval.explist) = A_ExpList( (yyvsp[(1) - (3)].exp) , (yyvsp[(3) - (3)].explist) ) ; }
     break;
 
   case 82:
-#line 265 "tiger.y"
+#line 266 "tiger.y"
     { (yyval.explist) = A_ExpList( (yyvsp[(1) - (3)].exp) , (yyvsp[(3) - (3)].explist) ) ; }
     break;
 
   case 83:
-#line 266 "tiger.y"
+#line 267 "tiger.y"
     { (yyval.explist) = A_ExpList( (yyvsp[(1) - (1)].exp) , NULL ) ; }
     break;
 
   case 84:
-#line 269 "tiger.y"
+#line 270 "tiger.y"
     { (yyval.explist) = (yyvsp[(1) - (1)].explist) ; }
     break;
 
   case 85:
-#line 270 "tiger.y"
+#line 271 "tiger.y"
     { (yyval.explist) = NULL ; }
     break;
 
   case 86:
-#line 273 "tiger.y"
+#line 274 "tiger.y"
     { (yyval.explist) = A_ExpList( (yyvsp[(1) - (3)].exp) , (yyvsp[(3) - (3)].explist) ) ; }
     break;
 
   case 87:
-#line 274 "tiger.y"
+#line 275 "tiger.y"
     { (yyval.explist) = A_ExpList( (yyvsp[(1) - (1)].exp) , NULL ) ; }
     break;
 
 
 /* Line 1267 of yacc.c.  */
-#line 2088 "y.tab.c"
+#line 2089 "y.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);

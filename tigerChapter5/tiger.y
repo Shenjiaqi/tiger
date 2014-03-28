@@ -235,7 +235,8 @@ exp_list_opt: exp COMMA  exp_list_opt { $$ = A_ExpList( $1 , $3 ) ; }
 assignment: lvalue ASSIGN exp { $$ = A_AssignExp( EM_tokPos , $1 , $3 ) ; }
 ;
 
-if_then: IF exp THEN exp { $$ = A_IfExp( EM_tokPos , $2 , $4 , NULL ) ; }
+if_then: IF exp THEN exp { $$ = A_IfExp( EM_tokPos , $2 , $4 ,
+    A_NilExp( EM_tokPos) ) ; }
 ;
 
 if_then_else: IF exp THEN exp ELSE exp { $$ = A_IfExp ( EM_tokPos , 

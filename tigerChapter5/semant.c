@@ -238,6 +238,65 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
             }
             break;
         }
+        case A_ifExp:
+        {
+            struct expty test, then, elsee;
+            test = transExp( venv, tenv, a->u.iff.test);
+            if( test.ty->kind != Ty_int )
+            {
+                EM_error( a->pos, " expect integer expression ");
+            }
+            then = transExp( venv, tenv, a->u.iff.then);
+            elsee = transExp( venv, tenv, a->u.iff.elsee);
+            break;
+        }
+        case A_seqExp:
+        {
+            A_expList expList = a->u.seq;
+            for( ; expList; expList = expList->tail)
+            {
+                r = transExp( venv, tenv, expList->head);
+            }
+            break;
+        }
+        case A_arrayExp:
+        {
+            S_symbol typ = a->u.array.typ;
+            A_exp size = a->u.array.size;
+            A_exp init = a->u.array.size;
+            Ty_ty arrayTy = getActuallTy( S_look( tenv, typ) );
+            if( arrayTy == NULL )
+            {
+                EM_error( a->pos, " type \"%s\" not defined yet", S_name( typ) );
+            }
+            else
+            {
+                struct expty sizeExp, initExp;
+                sizeExp = transExp( venv, tenv, size);
+                initExp = transExp( venv, tenv, init);
+                if( sizeExp.ty->kind != Ty_int )
+                {
+                    EM_error( a->pos, " expect integer expression");
+                }
+                else
+                {
+                    if( arrayTy->kind != Ty_array )
+                    {
+                        EM_error( a->pos, " type \"%s\" is not array",
+                                 S_name( typ ) );
+                    }
+                    if( (arrayTy->u).array != initExp.ty )
+                    {
+                        EM_error( a->pos, " type of init and array does not match");
+                    }
+                    else
+                    {
+                        r.ty = arrayTy;
+                    }
+                }
+            }
+            break;
+        }
         default:
 //            assert(0);
             break;
@@ -473,7 +532,7 @@ static struct expty transDec( S_table venv, S_table tenv,
                         getActuallTy((Ty_ty)S_look(tenv, fieldTypeName));
                         S_enter( venv, fieldName, E_VarEntry( preTy) );
                     }
-//                    struct expty bodyExp = transExp( venv, tenv, funBody);
+                    struct expty bodyExp = transExp( venv, tenv, funBody);
                     S_endScope( venv);
                 }
                 break;

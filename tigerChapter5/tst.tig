@@ -10,13 +10,15 @@
    var link : lnk := lnk{ nxt = link1, v = 2 } 
    var b := lnk{ nxt = nil, v = nil }
    var intv := 5
-   function printboard( a : rint, b : int ) =
+   type aryint = array of int
+   var col := aryint [ 10 ] of 0
+   type aryintint = array of aryint
+   function printboard( a : rint, b : rint) =
      (
-       for i := 0 to N-1
+       for i := 0 to a-1
        	 do (
-	   for j := 0 to N-1 
-             do print(
-	       if col[i]=j then " O" else " .");
+	   for j := 0 to b-1 
+             do if col[i]=j then " O" else " .";
            print("\n"));
              print("\n"))
 in
