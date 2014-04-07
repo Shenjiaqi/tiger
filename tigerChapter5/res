@@ -139,50 +139,7 @@
                    rint,
                    TRUE),
                   fieldList())),
-                seqExp(
-                 expList(
-                  forExp(i,
-                   intExp(0),
-                   opExp(
-                    MINUS,
-                    varExp(
-                     simpleVar(a)),
-                    intExp(1)),
-                   seqExp(
-                    expList(
-                     forExp(j,
-                      intExp(0),
-                      opExp(
-                       MINUS,
-                       varExp(
-                        simpleVar(b)),
-                       intExp(1)),
-                      iffExp(
-                       opExp(
-                        EQUAL,
-                        varExp(
-                         subscriptVar(
-                          simpleVar(col),
-                          varExp(
-                           simpleVar(i)))),
-                        varExp(
-                         simpleVar(j))),
-                       stringExp(" O"),
-                       stringExp(" .")),
-                      TRUE),
-                     expList(
-                      callExp(print,
-                       expList(
-                        stringExp("\n"),
-                        expList())),
-                      expList()))),
-                   TRUE),
-                  expList(
-                   callExp(print,
-                    expList(
-                     stringExp("\n"),
-                     expList())),
-                   expList())))),
+                nilExp()),
                fundecList())),
              decList()))))))))))),
   expList(
@@ -238,4 +195,11 @@
          simpleVar(intv)),
         intExp(1))))
 ,
-     expList()))))
+     expList(
+      callExp(printboard,
+       expList(
+        intExp(1),
+        expList(
+         intExp(2),
+         expList()))),
+      expList())))))

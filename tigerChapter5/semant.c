@@ -87,7 +87,46 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a)
         }
         case A_callExp:
         {
-            
+            S_symbol func = a->u.call.func;
+            A_expList args = a->u.call.args;
+            E_enventry fun = S_look( venv, func );
+            if( fun == NULL )
+            {
+                EM_error( a->pos, " %s not defined yet", S_name(func ));
+            }
+            else if( fun->kind != E_funEntry )
+            {
+                EM_error( a->pos, " %s is not defined as a function");
+            }
+            else
+            {
+                Ty_fieldList formals = fun->u.fun.formals;
+                Ty_ty result = fun->u.fun.result;
+                for( ; args != NULL && formals != NULL;
+                    args = args->tail, formals = formals->tail)
+                {
+                    Ty_field field = formals->head;
+                    A_exp arg = args->head;
+                    r = transExp( venv, tenv, arg);
+                    if( r.ty->kind != field->ty->kind &&
+                       r.ty->kind != Ty_nil )
+                    {
+                        EM_error( a->pos, " type does not match, from %s to %s",
+                                 str_ty[r.ty->kind],
+                                 str_ty[field->ty->kind]);
+                    }
+                }
+                if( formals != NULL )
+                {
+                    EM_error( a->pos, " expect more arguments ");
+                }
+                else if( args != NULL )
+                {
+                    EM_error( a->pos, " too many arguments");
+                }
+                r.exp = NULL;
+                r.ty = fun->u.fun.result;
+            }
             break;
         }
         case A_opExp:

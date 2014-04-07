@@ -16,11 +16,10 @@
    function printboard( a : rint, b : rint) =
      (
        for i := 0 to a-1
-       	 do (
+       	 do
 	   for j := 0 to b-1 
-             do if col[i]=j then " O" else " .";
-           print("\n"));
-             print("\n"))
+             do if col[i]=j then " O" else " ."
+	     )
 in
    aaa := link1.nxt.nxt.cnt[1];
 
@@ -29,7 +28,8 @@ in
      1 + 1;
      intv := intv + intv
    );
-   while intv + intv do intv = intv - 1
+   while intv + intv do intv = intv - 1;
+   printboard( 1,2 )
 /*
  TO test
      let
