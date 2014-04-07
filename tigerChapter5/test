@@ -1,2 +1,2 @@
 #!/bin/bash
-./a.out ../testcases/queens.tig
+./a.out ../testcases/merge.tig

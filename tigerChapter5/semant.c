@@ -530,15 +530,14 @@ static struct expty transDec( S_table venv, S_table tenv,
                         {
                             if( funRes != NULL )
                             {
-                                Ty_ty tyRes = (Ty_ty) S_look( tenv, funRes );
-                                if( tyRes )
+                                Ty_ty tyRes = getActuallTy(S_look( tenv, funRes ));
+                                if( tyRes == NULL )
                                 {
-                                    EM_error( d->pos, " type %s not defined yet ",
+                                    EM_error( d->pos, "type %s not defined yet ",
                                              S_name(funRes) );
                                 }
                                 else
                                 {
-                                    tyRes = getActuallTy( tyRes );
                                     S_enter( venv, funName, E_FunEntry( fieldList,
                                                                        tyRes ) );
                                 }
@@ -572,6 +571,21 @@ static struct expty transDec( S_table venv, S_table tenv,
                         S_enter( venv, fieldName, E_VarEntry( preTy) );
                     }
                     struct expty bodyExp = transExp( venv, tenv, funBody);
+                    if( funRes != NULL )
+                    {
+                        Ty_ty tyRes = getActuallTy(S_look( tenv, funRes ));
+                        if( tyRes != NULL )
+                        {
+                            if( bodyExp.ty->kind != tyRes->kind &&
+                               bodyExp.ty->kind != Ty_nil )
+                            {
+                                EM_error( d->pos, " return type of %s does not match,\
+                                         from %s to %s", S_name( funName) ,
+                                         str_ty[bodyExp.ty->kind],
+                                         str_ty[tyRes->kind]);
+                            }
+                        }
+                    }
                     S_endScope( venv);
                 }
                 break;

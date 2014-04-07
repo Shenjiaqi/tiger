@@ -140,7 +140,74 @@
                    TRUE),
                   fieldList())),
                 nilExp()),
-               fundecList())),
+               fundecList(
+                fundec(funA,
+                 fieldList(
+                  field(b,
+                   string,
+                   TRUE),
+                  fieldList(
+                   field(a,
+                    int,
+                    TRUE),
+                   fieldList())),
+                 int,
+                 seqExp(
+                  expList(
+                   varExp(
+                    simpleVar(b)),
+                   expList(
+                    callExp(funB,
+                     expList(
+                      varExp(
+                       simpleVar(b)),
+                      expList(
+                       varExp(
+                        simpleVar(a)),
+                       expList()))),
+                    expList())))),
+                fundecList(
+                 fundec(funB,
+                  fieldList(
+                   field(b,
+                    int,
+                    TRUE),
+                   fieldList(
+                    field(a,
+                     string,
+                     TRUE),
+                    fieldList())),
+                  int,
+                  seqExp(
+                   expList(
+                    varExp(
+                     simpleVar(a)),
+                    expList(
+                     varExp(
+                      simpleVar(b)),
+                     expList(
+                      callExp(funA,
+                       expList(
+                        callExp(funB,
+                         expList(
+                          varExp(
+                           simpleVar(a)),
+                          expList(
+                           callExp(funA,
+                            expList(
+                             varExp(
+                              simpleVar(b)),
+                             expList(
+                              varExp(
+                               simpleVar(a)),
+                              expList()))),
+                           expList()))),
+                        expList(
+                         varExp(
+                          simpleVar(a)),
+                         expList()))),
+                      expList()))))),
+                 fundecList())))),
              decList()))))))))))),
   expList(
    assignExp(

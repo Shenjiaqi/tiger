@@ -19,7 +19,15 @@
        	 do
 	   for j := 0 to b-1 
              do if col[i]=j then " O" else " ."
-	     )
+    )
+  function funA( a : int, b : string ) : int =
+   (
+     b; funB( b, a )
+   )
+  function funB( a : string, b : int ) : int = 
+  (
+    a; b; funA( funB( a, funA( b, a ) ), a )
+  )
 in
    aaa := link1.nxt.nxt.cnt[1];
 
